@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
+import { GlassTooltip } from "@/components/GlassTooltip";
 
 const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
 const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
@@ -72,8 +73,8 @@ const issues = [
   },
 ];
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
+const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } };
 
 function ProgressRing({ value }: { value: number }) {
   const r = 28;

@@ -261,14 +261,7 @@ export default function Overview() {
                     <Cell key={i} fill={d.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                />
+                <Tooltip content={<GlassTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">

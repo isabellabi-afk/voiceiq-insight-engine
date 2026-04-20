@@ -15,6 +15,7 @@ import {
   PolarRadiusAxis,
   Radar,
   Legend,
+  Cell,
 } from "recharts";
 import {
   MapPin,
@@ -296,7 +297,7 @@ export default function MarketExplorer() {
                 />
                 <Scatter data={cuisineBubbles} shape="circle">
                   {cuisineBubbles.map((b, i) => (
-                    <cell key={i} />
+                    <Cell key={i} fill={bubbleColor(b.satisfaction)} fillOpacity={0.55} stroke={bubbleColor(b.satisfaction)} />
                   ))}
                 </Scatter>
               </ScatterChart>

@@ -8,11 +8,14 @@ export default {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "Inter", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -55,9 +58,13 @@ export default {
           DEFAULT: "hsl(var(--negative))",
           foreground: "hsl(var(--negative-foreground))",
         },
-        neutral: {
-          DEFAULT: "hsl(var(--neutral))",
-          foreground: "hsl(var(--neutral-foreground))",
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        insight: {
+          DEFAULT: "hsl(var(--insight))",
+          foreground: "hsl(var(--insight-foreground))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

@@ -1,145 +1,372 @@
 import { motion } from "framer-motion";
-import { Database, TrendingUp, TrendingDown, Star } from "lucide-react";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+  TrendingUp,
+  TrendingDown,
+  Star,
+  MessageSquare,
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  Clock,
+  DollarSign,
+  ChefHat,
+  Download,
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  Tooltip,
 } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { PageHeader } from "@/components/PageHeader";
 
-const kpis = [
-  { label: "Total Reviews Analyzed", value: "127,450", icon: Database, color: "text-accent" },
-  { label: "Positive Reviews", value: "68%", icon: TrendingUp, color: "text-positive" },
-  { label: "Negative Reviews", value: "32%", icon: TrendingDown, color: "text-negative" },
-  { label: "Avg Sentiment Score", value: "0.74", icon: Star, color: "text-neutral" },
+const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
+const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
+
+const sentimentData = [
+  { name: "Very Positive", value: 42, color: "hsl(160 84% 45%)" },
+  { name: "Positive", value: 26, color: "hsl(160 84% 60%)" },
+  { name: "Neutral", value: 12, color: "hsl(38 92% 55%)" },
+  { name: "Negative", value: 14, color: "hsl(0 84% 65%)" },
+  { name: "Very Negative", value: 6, color: "hsl(0 84% 50%)" },
 ];
 
-const donutData = [
-  { name: "5 Stars", value: 42, color: "hsl(160, 84%, 39%)" },
-  { name: "4 Stars", value: 26, color: "hsl(160, 84%, 50%)" },
-  { name: "3 Stars", value: 12, color: "hsl(45, 93%, 58%)" },
-  { name: "2 Stars", value: 11, color: "hsl(350, 89%, 65%)" },
-  { name: "1 Star", value: 9, color: "hsl(350, 89%, 50%)" },
+const drivers = [
+  { name: "Food Quality", value: 89, tone: "positive" },
+  { name: "Service Speed", value: 76, tone: "positive" },
+  { name: "Staff Friendliness", value: 71, tone: "positive" },
+  { name: "Value for Money", value: 65, tone: "warning" },
+  { name: "Cleanliness", value: 58, tone: "warning" },
+] as const;
+
+const issues = [
+  {
+    title: "Wait Time",
+    pct: 78,
+    impact: "High",
+    detail: "Affects NPS by −12 pts",
+    action: "Implement reservation system",
+    icon: Clock,
+  },
+  {
+    title: "Pricing Perception",
+    pct: 58,
+    impact: "Medium",
+    detail: "Affects retention by 8%",
+    action: "Review portion sizes vs pricing",
+    icon: DollarSign,
+  },
+  {
+    title: "Inconsistent Food Quality",
+    pct: 34,
+    impact: "High",
+    detail: "Drives 1-star reviews",
+    action: "Standardize recipes & training",
+    icon: ChefHat,
+  },
 ];
 
-const satisfactionData = [
-  { factor: "Food Quality", value: 89 },
-  { factor: "Service", value: 76 },
-  { factor: "Ambiance", value: 71 },
-  { factor: "Value for Money", value: 65 },
-  { factor: "Wait Time", value: 42 },
-];
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-const dissatisfactionData = [
-  { factor: "Wait Time", value: 78 },
-  { factor: "Poor Service", value: 71 },
-  { factor: "Pricing", value: 58 },
-  { factor: "Food Quality", value: 34 },
-  { factor: "Cleanliness", value: 28 },
-];
-
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
+function ProgressRing({ value }: { value: number }) {
+  const r = 28;
+  const c = 2 * Math.PI * r;
+  const offset = c - (value / 100) * c;
   return (
-    <div className="glass-card px-3 py-2 text-xs">
-      <p className="font-medium text-foreground">{label || payload[0]?.name}</p>
-      <p className="text-muted-foreground">{payload[0]?.value}%</p>
-    </div>
+    <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
+      <circle cx="36" cy="36" r={r} stroke="hsl(var(--border))" strokeWidth="6" fill="none" />
+      <circle
+        cx="36"
+        cy="36"
+        r={r}
+        stroke="hsl(var(--primary))"
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        transform="rotate(-90 36 36)"
+        style={{ transition: "stroke-dashoffset 1s ease-out" }}
+      />
+      <text
+        x="36"
+        y="40"
+        textAnchor="middle"
+        className="font-data fill-foreground text-[13px] font-semibold"
+      >
+        {value}%
+      </text>
+    </svg>
   );
-};
+}
 
 export default function Overview() {
   return (
     <DashboardLayout>
-      <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-        {/* Header */}
-        <motion.div variants={item}>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Overview</h2>
-          <p className="text-sm text-muted-foreground">Customer review intelligence at a glance</p>
-        </motion.div>
+      <PageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        subtitle="Real-time customer intelligence across your restaurant operations."
+        actions={
+          <button className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08]">
+            <Download className="h-3.5 w-3.5" /> Export
+          </button>
+        }
+      />
 
-        {/* KPIs */}
-        <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <div key={kpi.label} className="glass-card p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
-                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-              </div>
-              <p className="mt-2 text-3xl font-bold text-foreground">{kpi.value}</p>
+      {/* KPI Grid */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {/* NPS */}
+        <motion.div variants={item} className="glass-card-hover p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Net Promoter Score</p>
+              <p className="mt-2 font-data text-4xl font-bold text-positive">+42</p>
+              <p className="mt-1 text-xs text-muted-foreground">Industry avg: +28</p>
             </div>
-          ))}
-        </motion.div>
-
-        {/* Charts row */}
-        <motion.div variants={item} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Donut */}
-          <div className="glass-card p-6">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">Review Distribution by Stars</h3>
-            <div className="h-64">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-positive/15">
+              <Activity className="h-4 w-4 text-positive" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-end justify-between">
+            <span className="flex items-center gap-1 text-xs font-semibold text-positive">
+              <ArrowUpRight className="h-3 w-3" /> +8 pts vs last month
+            </span>
+            <div className="h-10 w-24">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={donutData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} dataKey="value" paddingAngle={3} stroke="none">
-                    {donutData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
+                <LineChart data={sparkline}>
+                  <Line
+                    type="monotone"
+                    dataKey="v"
+                    stroke="hsl(var(--positive))"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-2 flex flex-wrap justify-center gap-3">
-              {donutData.map((d) => (
-                <div key={d.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                  {d.name} ({d.value}%)
-                </div>
+          </div>
+        </motion.div>
+
+        {/* CSAT */}
+        <motion.div variants={item} className="glass-card-hover p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Customer Satisfaction</p>
+              <p className="mt-2 font-data text-4xl font-bold text-foreground">
+                4.2<span className="text-2xl text-muted-foreground">/5</span>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Based on 12,847 reviews</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
+              <Star className="h-4 w-4 text-warning" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={`h-3.5 w-3.5 ${
+                    s <= 4 ? "fill-warning text-warning" : "text-muted-foreground/30"
+                  }`}
+                />
               ))}
             </div>
-          </div>
-
-          {/* Satisfaction */}
-          <div className="glass-card p-6">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">Top Satisfaction Factors</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={satisfactionData} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="hsl(217, 33%, 22%)" />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="factor" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" fill="hsl(160, 84%, 39%)" radius={[0, 6, 6, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <span className="flex items-center gap-1 text-xs font-semibold text-positive">
+              <ArrowUpRight className="h-3 w-3" /> +0.2
+            </span>
           </div>
         </motion.div>
 
-        {/* Dissatisfaction */}
-        <motion.div variants={item} className="glass-card p-6">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Top Dissatisfaction Factors</h3>
-          <div className="h-72">
+        {/* Volume */}
+        <motion.div variants={item} className="glass-card-hover p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Review Volume Trend</p>
+              <p className="mt-2 font-data text-4xl font-bold text-warning">+23%</p>
+              <p className="mt-1 text-xs text-muted-foreground">vs previous period</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
+              <MessageSquare className="h-4 w-4 text-warning" />
+            </div>
+          </div>
+          <div className="mt-3 h-12">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dissatisfactionData} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="hsl(217, 33%, 22%)" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="factor" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" fill="hsl(350, 89%, 60%)" radius={[0, 6, 6, 0]} barSize={20} />
-              </BarChart>
+              <AreaChart data={volumeTrend}>
+                <defs>
+                  <linearGradient id="vol" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke="hsl(var(--warning))"
+                  strokeWidth={2}
+                  fill="url(#vol)"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
+
+        {/* Response */}
+        <motion.div variants={item} className="glass-card-hover p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Response Rate</p>
+              <p className="mt-2 font-data text-4xl font-bold text-foreground">87%</p>
+              <p className="mt-1 text-xs text-muted-foreground">Reviews responded to</p>
+            </div>
+            <ProgressRing value={87} />
+          </div>
+        </motion.div>
       </motion.div>
+
+      {/* Middle */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-5">
+        {/* Donut */}
+        <div className="glass-card p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-display text-base font-semibold">Sentiment Distribution</h3>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">12,847 reviews</span>
+          </div>
+          <div className="relative h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={sentimentData}
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {sentimentData.map((d, i) => (
+                    <Cell key={i} fill={d.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <p className="font-data text-3xl font-bold text-foreground">68%</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Positive</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            {sentimentData.map((d) => (
+              <div key={d.name} className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: d.color }} />
+                <span className="text-muted-foreground">{d.name}</span>
+                <span className="ml-auto font-data text-foreground">{d.value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Drivers */}
+        <div className="glass-card p-6 lg:col-span-3">
+          <div className="mb-5 flex items-center justify-between">
+            <h3 className="font-display text-base font-semibold">Top Drivers of Satisfaction</h3>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Last 30 days</span>
+          </div>
+          <div className="space-y-4">
+            {drivers.map((d, i) => (
+              <motion.div
+                key={d.name}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <span className="font-medium text-foreground">{d.name}</span>
+                  <span className="font-data text-muted-foreground">{d.value}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${d.value}%` }}
+                    transition={{ duration: 0.9, delay: 0.15 + i * 0.08, ease: "easeOut" }}
+                    className={`h-full rounded-full ${
+                      d.tone === "positive" ? "gradient-positive" : "gradient-warning"
+                    }`}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Issues */}
+      <div className="mt-8">
+        <div className="mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-negative" />
+          <h3 className="font-display text-base font-semibold">Critical Improvement Areas</h3>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {issues.map((issue, i) => (
+            <motion.div
+              key={issue.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="glass-card-hover relative overflow-hidden p-5"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-negative/60 to-transparent" />
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15">
+                    <issue.icon className="h-5 w-5 text-negative" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-semibold text-foreground">{issue.title}</h4>
+                    <p className="font-data text-xs text-negative">{issue.pct}% negative mentions</p>
+                  </div>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    issue.impact === "High"
+                      ? "bg-negative/15 text-negative"
+                      : "bg-warning/15 text-warning"
+                  }`}
+                >
+                  {issue.impact}
+                </span>
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
+              <div className="mt-3 rounded-lg border border-white/5 bg-white/[0.03] p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Suggested action
+                </p>
+                <p className="mt-1 text-sm text-foreground">{issue.action}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </DashboardLayout>
   );
 }

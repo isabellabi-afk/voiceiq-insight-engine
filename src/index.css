@@ -84,15 +84,15 @@
   }
 
   h1, h2, h3, h4, h5 {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-family: 'Clash Display', 'Space Grotesk', 'Inter', sans-serif;
     letter-spacing: -0.025em;
     font-weight: 500;
     color: hsl(var(--foreground));
   }
 
   .font-display {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-    letter-spacing: -0.03em;
+    font-family: 'Clash Display', 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
     font-weight: 500;
   }
 

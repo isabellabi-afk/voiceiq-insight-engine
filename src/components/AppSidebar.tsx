@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  TrendingUp,
   LayoutDashboard,
   Heart,
   Target,
@@ -31,13 +30,11 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 px-5 py-6 ${collapsed ? "justify-center px-3" : ""}`}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl gradient-insight shadow-[0_8px_24px_rgba(129,140,248,0.3)]">
-          <TrendingUp className="h-5 w-5 text-white" strokeWidth={2} />
-        </div>
+        <div className="aura-orb" aria-hidden="true" />
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="font-display text-lg font-medium text-foreground">RestaurantIQ</h1>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Intelligence</p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground leading-none">Aura</h1>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Intelligence</p>
           </div>
         )}
       </div>

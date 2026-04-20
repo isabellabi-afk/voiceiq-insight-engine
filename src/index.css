@@ -84,15 +84,15 @@
   }
 
   h1, h2, h3, h4, h5 {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-family: 'Clash Display', 'Space Grotesk', 'Inter', sans-serif;
     letter-spacing: -0.025em;
     font-weight: 500;
     color: hsl(var(--foreground));
   }
 
   .font-display {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-    letter-spacing: -0.03em;
+    font-family: 'Clash Display', 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
     font-weight: 500;
   }
 
@@ -109,6 +109,34 @@
 }
 
 @layer components {
+  /* Aura — glowing orb logo */
+  .aura-orb {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+    background:
+      radial-gradient(circle at 30% 28%, #FFFFFF 0%, rgba(255,255,255,0) 35%),
+      radial-gradient(circle at 50% 50%, #818CF8 0%, #C084FC 45%, #F472B6 100%);
+    box-shadow:
+      0 0 24px rgba(129, 140, 248, 0.55),
+      0 0 48px rgba(244, 114, 182, 0.35),
+      inset 0 -6px 14px rgba(91, 33, 182, 0.35),
+      inset 0 6px 10px rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .aura-orb::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(192, 132, 252, 0.45) 0%, transparent 70%);
+    filter: blur(10px);
+    z-index: -1;
+  }
+
   /* Soft luminous glass card */
   .glass-card {
     background: rgba(255, 255, 255, 0.42);

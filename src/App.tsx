@@ -7,7 +7,7 @@ import Overview from "./pages/Overview";
 import TopicExplorer from "./pages/TopicExplorer";
 import MarketPosition from "./pages/MarketPosition";
 import Performance from "./pages/Performance";
-import LiveAnalyzer from "./pages/LiveAnalyzer";
+import MarketExplorer from "./pages/MarketExplorer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,7 +23,7 @@ const App = () => (
           <Route path="/sentiment" element={<TopicExplorer />} />
           <Route path="/market" element={<MarketPosition />} />
           <Route path="/performance" element={<Performance />} />
-          <Route path="/analyzer" element={<LiveAnalyzer />} />
+          <Route path="/explorer" element={<MarketExplorer />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

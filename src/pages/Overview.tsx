@@ -298,7 +298,7 @@ export default function Overview() {
                   <span className="font-medium text-foreground">{d.name}</span>
                   <span className="font-data text-muted-foreground">{d.value}%</span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${d.value}%` }}
@@ -351,7 +351,7 @@ export default function Overview() {
                 </span>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
-              <div className="mt-3 rounded-lg border border-white/5 bg-white/[0.03] p-3">
+              <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                   Suggested action
                 </p>

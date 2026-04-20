@@ -31,11 +31,11 @@ const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) =>
 const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
 
 const sentimentData = [
-  { name: "Very Positive", value: 42, color: "hsl(160 84% 45%)" },
-  { name: "Positive", value: 26, color: "hsl(160 84% 60%)" },
-  { name: "Neutral", value: 12, color: "hsl(38 92% 55%)" },
-  { name: "Negative", value: 14, color: "hsl(0 84% 65%)" },
-  { name: "Very Negative", value: 6, color: "hsl(0 84% 50%)" },
+  { name: "Very Positive", value: 42, color: "#6EE7B7" },
+  { name: "Positive", value: 26, color: "#A7F3D0" },
+  { name: "Neutral", value: 12, color: "#FED7AA" },
+  { name: "Negative", value: 14, color: "#FBCFE8" },
+  { name: "Very Negative", value: 6, color: "#F9A8D4" },
 ];
 
 const drivers = [
@@ -82,7 +82,7 @@ function ProgressRing({ value }: { value: number }) {
   const offset = c - (value / 100) * c;
   return (
     <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
-      <circle cx="36" cy="36" r={r} stroke="hsl(var(--border))" strokeWidth="6" fill="none" />
+      <circle cx="36" cy="36" r={r} stroke="rgba(31,41,55,0.08)" strokeWidth="6" fill="none" />
       <circle
         cx="36"
         cy="36"
@@ -116,7 +116,7 @@ export default function Overview() {
         title="Dashboard"
         subtitle="Real-time customer intelligence across your restaurant operations."
         actions={
-          <button className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08]">
+          <button className="pill flex items-center gap-2 border border-white/60 bg-white/60 px-4 py-2 text-xs font-medium text-foreground backdrop-blur-xl shadow-[0_4px_12px_rgba(31,41,55,0.04)] hover:bg-white/80 hover:shadow-[0_6px_16px_rgba(31,41,55,0.06)]">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
         }
@@ -298,7 +298,7 @@ export default function Overview() {
                   <span className="font-medium text-foreground">{d.name}</span>
                   <span className="font-data text-muted-foreground">{d.value}%</span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${d.value}%` }}
@@ -351,7 +351,7 @@ export default function Overview() {
                 </span>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
-              <div className="mt-3 rounded-lg border border-white/5 bg-white/[0.03] p-3">
+              <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                   Suggested action
                 </p>

@@ -25,18 +25,18 @@ export function AppSidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ${
-        collapsed ? "w-[72px]" : "w-[280px]"
+      className={`fixed left-0 top-0 z-40 flex h-screen flex-col bg-transparent transition-[width] duration-300 ${
+        collapsed ? "w-[88px]" : "w-[280px]"
       }`}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 px-4 py-5 ${collapsed ? "justify-center" : ""}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-insight">
-          <TrendingUp className="h-5 w-5 text-primary-foreground" />
+      <div className={`flex items-center gap-3 px-5 py-6 ${collapsed ? "justify-center px-3" : ""}`}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl gradient-insight shadow-[0_8px_24px_rgba(129,140,248,0.3)]">
+          <TrendingUp className="h-5 w-5 text-white" strokeWidth={2} />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="font-display text-lg font-bold text-foreground">RestaurantIQ</h1>
+            <h1 className="font-display text-lg font-medium text-foreground">RestaurantIQ</h1>
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Intelligence</p>
           </div>
         )}
@@ -46,13 +46,13 @@ export function AppSidebar() {
       <button
         onClick={() => setCollapsed((c) => !c)}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute -right-3 top-7 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground transition-colors hover:text-foreground"
+        className="absolute -right-3 top-9 flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-white/70 text-muted-foreground shadow-[0_4px_12px_rgba(31,41,55,0.06)] backdrop-blur-xl transition-colors hover:text-foreground"
       >
-        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
       </button>
 
       {/* Nav */}
-      <nav className="mt-4 flex flex-1 flex-col gap-1 px-3">
+      <nav className="mt-4 flex flex-1 flex-col gap-1.5 px-3">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -60,22 +60,21 @@ export function AppSidebar() {
             end={item.path === "/"}
             title={collapsed ? item.title : undefined}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-in-out ${
+              `group relative flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-300 ease-in-out ${
                 isActive
-                  ? "bg-white/[0.05] text-foreground"
-                  : "text-sidebar-foreground hover:bg-white/[0.03] hover:text-foreground"
-              } ${collapsed ? "justify-center" : ""}`
+                  ? "pill-active"
+                  : "text-sidebar-foreground hover:bg-white/40 hover:text-foreground"
+              } ${collapsed ? "justify-center px-0" : ""}`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive && (
-                  <span
-                    className="absolute -left-3 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-primary"
-                    style={{ boxShadow: "0 0 12px hsl(239 84% 67% / 0.8), 0 0 24px hsl(239 84% 67% / 0.4)" }}
-                  />
-                )}
-                <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors ${isActive ? "text-primary" : ""}`} />
+                <item.icon
+                  className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                    isActive ? "text-primary" : "text-sidebar-foreground"
+                  }`}
+                  strokeWidth={1.5}
+                />
                 {!collapsed && <span className="truncate">{item.title}</span>}
               </>
             )}
@@ -84,17 +83,17 @@ export function AppSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-3">
+      <div className="p-4">
         <div
-          className={`rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 ${
+          className={`rounded-3xl border border-white/60 bg-white/40 p-3 backdrop-blur-xl ${
             collapsed ? "flex justify-center" : ""
           }`}
         >
           <div className={`flex items-center gap-2 ${collapsed ? "" : "text-xs text-muted-foreground"}`}>
-            <Database className="h-4 w-4 shrink-0 text-primary" />
+            <Database className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} />
             {!collapsed && (
               <span className="leading-tight">
-                Yelp Dataset + Web Intelligence
+                Yelp + Web Intelligence
                 <br />
                 <span className="font-data text-[10px] text-foreground/70">127K reviews</span>
               </span>

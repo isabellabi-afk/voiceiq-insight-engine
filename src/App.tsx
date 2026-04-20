@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Overview from "./pages/Overview";
 import TopicExplorer from "./pages/TopicExplorer";
+import MarketPosition from "./pages/MarketPosition";
+import Performance from "./pages/Performance";
 import LiveAnalyzer from "./pages/LiveAnalyzer";
 import NotFound from "./pages/NotFound";
 
@@ -18,7 +20,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Overview />} />
-          <Route path="/topics" element={<TopicExplorer />} />
+          <Route path="/sentiment" element={<TopicExplorer />} />
+          <Route path="/market" element={<MarketPosition />} />
+          <Route path="/performance" element={<Performance />} />
           <Route path="/analyzer" element={<LiveAnalyzer />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

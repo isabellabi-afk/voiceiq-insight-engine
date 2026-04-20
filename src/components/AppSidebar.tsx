@@ -60,19 +60,22 @@ export function AppSidebar() {
             end={item.path === "/"}
             title={collapsed ? item.title : undefined}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+              `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-in-out ${
                 isActive
-                  ? "bg-primary/15 text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
+                  ? "bg-white/[0.05] text-foreground"
+                  : "text-sidebar-foreground hover:bg-white/[0.03] hover:text-foreground"
               } ${collapsed ? "justify-center" : ""}`
             }
           >
             {({ isActive }) => (
               <>
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+                  <span
+                    className="absolute -left-3 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-primary"
+                    style={{ boxShadow: "0 0 12px hsl(239 84% 67% / 0.8), 0 0 24px hsl(239 84% 67% / 0.4)" }}
+                  />
                 )}
-                <item.icon className="h-[18px] w-[18px] shrink-0" />
+                <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors ${isActive ? "text-primary" : ""}`} />
                 {!collapsed && <span className="truncate">{item.title}</span>}
               </>
             )}

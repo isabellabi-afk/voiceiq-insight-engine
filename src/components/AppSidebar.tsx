@@ -6,7 +6,7 @@ import {
   Heart,
   Target,
   BarChart3,
-  Sparkles,
+  MapPin,
   Database,
   ChevronLeft,
   ChevronRight,
@@ -17,7 +17,7 @@ const navItems = [
   { title: "Customer Sentiment", path: "/sentiment", icon: Heart },
   { title: "Market Position", path: "/market", icon: Target },
   { title: "Performance Metrics", path: "/performance", icon: BarChart3 },
-  { title: "Live Analyzer", path: "/analyzer", icon: Sparkles },
+  { title: "Market Explorer", path: "/explorer", icon: MapPin },
 ];
 
 export function AppSidebar() {

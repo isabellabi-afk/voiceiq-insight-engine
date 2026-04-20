@@ -116,7 +116,7 @@ export default function Overview() {
         title="Dashboard"
         subtitle="Real-time customer intelligence across your restaurant operations."
         actions={
-          <button className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08]">
+          <button className="pill flex items-center gap-2 border border-white/60 bg-white/60 px-4 py-2 text-xs font-medium text-foreground backdrop-blur-xl shadow-[0_4px_12px_rgba(31,41,55,0.04)] hover:bg-white/80 hover:shadow-[0_6px_16px_rgba(31,41,55,0.06)]">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
         }

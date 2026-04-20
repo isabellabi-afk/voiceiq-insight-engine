@@ -272,7 +272,7 @@ export default function Overview() {
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <p className="font-data text-3xl font-bold text-foreground">68%</p>
+              <p className="font-data text-3xl font-bold text-positive glow-text-positive">68%</p>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Positive</p>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function Overview() {
           <AlertTriangle className="h-4 w-4 text-negative" />
           <h3 className="font-display text-base font-semibold">Critical Improvement Areas</h3>
         </div>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {issues.map((issue, i) => (
             <motion.div
               key={issue.title}

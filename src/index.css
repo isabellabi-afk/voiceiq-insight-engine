@@ -4,55 +4,54 @@
 
 @layer base {
   :root {
-    /* RestaurantIQ — Dark slate theme */
-    --background: 222 47% 8%;
+    /* RestaurantIQ — Dark-Glass / Dribbble HiFi */
+    --background: 222 47% 5%;          /* #020617 ultra-dark slate */
     --foreground: 210 40% 98%;
 
-    --card: 222 40% 12%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 40% 12%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    /* Indigo as primary brand */
     --primary: 239 84% 67%;
-    --primary-foreground: 222 47% 8%;
+    --primary-foreground: 222 47% 5%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 217 33% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 60%;
+    --muted: 217 33% 14%;
+    --muted-foreground: 215 20% 62%;
 
     --accent: 239 84% 67%;
-    --accent-foreground: 222 47% 8%;
+    --accent-foreground: 222 47% 5%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     /* Semantic */
-    --positive: 160 84% 39%;
-    --positive-foreground: 222 47% 8%;
-    --negative: 0 84% 60%;
+    --positive: 160 84% 45%;
+    --positive-foreground: 222 47% 5%;
+    --negative: 0 84% 62%;
     --negative-foreground: 210 40% 98%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 8%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 5%;
     --insight: 239 84% 67%;
-    --insight-foreground: 222 47% 8%;
+    --insight-foreground: 222 47% 5%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
     --ring: 239 84% 67%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    --sidebar-background: 222 47% 6%;
+    --sidebar-background: 222 47% 4%;
     --sidebar-foreground: 215 20% 70%;
     --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 222 40% 12%;
+    --sidebar-accent: 222 47% 8%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 16%;
+    --sidebar-border: 217 33% 14%;
     --sidebar-ring: 239 84% 67%;
   }
 }
@@ -69,10 +68,13 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    background-color: hsl(222 47% 5%);
+    /* Ambient indigo lighting in top-right + soft emerald lift in bottom-left */
     background-image:
-      radial-gradient(circle at 15% 10%, hsl(239 84% 67% / 0.08), transparent 40%),
-      radial-gradient(circle at 85% 90%, hsl(160 84% 39% / 0.05), transparent 40%);
+      radial-gradient(ellipse 1100px 700px at 95% -10%, hsl(239 84% 67% / 0.18), transparent 60%),
+      radial-gradient(ellipse 900px 600px at -5% 110%, hsl(160 84% 45% / 0.06), transparent 60%);
     background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   h1, h2, h3, h4, h5 {
@@ -88,48 +90,93 @@
   .font-data {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-feature-settings: 'tnum';
+    letter-spacing: -0.01em;
   }
 }
 
 @layer components {
+  /* Glass surface — rgba(255,255,255,0.03) + blur(20) + 1px white/8 + inset highlight */
   .glass-card {
-    @apply backdrop-blur-xl bg-white/[0.04] border border-white/10 rounded-2xl;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.05),
+      0 1px 0 0 rgba(255, 255, 255, 0.02),
+      0 20px 40px -20px rgba(0, 0, 0, 0.5);
+    transition: border-color 300ms ease-in-out, background 300ms ease-in-out,
+      backdrop-filter 300ms ease-in-out, transform 300ms ease-in-out;
   }
 
   .glass-card-hover {
-    @apply glass-card transition-all duration-300 hover:bg-white/[0.06] hover:border-white/20 hover:-translate-y-0.5;
+    @apply glass-card;
+  }
+  .glass-card-hover:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    transform: translateY(-2px);
+  }
+
+  /* Floating glass tooltip for Recharts custom tooltips */
+  .glass-tooltip {
+    background: rgba(15, 18, 30, 0.7);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: hsl(var(--foreground));
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   }
 
   .gradient-positive {
-    background: linear-gradient(135deg, hsl(160 84% 45%), hsl(160 84% 32%));
+    background: linear-gradient(135deg, hsl(160 84% 50%), hsl(160 84% 35%));
   }
-
   .gradient-negative {
     background: linear-gradient(135deg, hsl(0 84% 65%), hsl(0 84% 50%));
   }
-
   .gradient-warning {
-    background: linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 42%));
+    background: linear-gradient(135deg, hsl(38 92% 58%), hsl(38 92% 45%));
   }
-
   .gradient-insight {
     background: linear-gradient(135deg, hsl(239 84% 70%), hsl(263 70% 55%));
   }
 
+  /* Neon metric glows */
+  .glow-text-positive {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.45));
+  }
+  .glow-text-indigo {
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
+  }
+  .glow-text-warning {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+  }
+  .glow-text-negative {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.45));
+  }
+
   .glow-insight {
-    box-shadow: 0 0 0 1px hsl(239 84% 67% / 0.4), 0 8px 32px hsl(239 84% 67% / 0.25);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 0 1px hsl(239 84% 67% / 0.45),
+      0 12px 40px hsl(239 84% 67% / 0.28);
   }
-
   .glow-positive {
-    box-shadow: 0 0 24px hsl(160 84% 39% / 0.25);
+    box-shadow: 0 0 24px hsl(160 84% 45% / 0.3);
   }
-
   .glow-negative {
-    box-shadow: 0 0 24px hsl(0 84% 60% / 0.25);
+    box-shadow: 0 0 24px hsl(0 84% 62% / 0.3);
   }
 
   .sentiment-gauge-track {
-    background: linear-gradient(90deg, hsl(0 84% 60%), hsl(38 92% 50%), hsl(160 84% 45%));
+    background: linear-gradient(90deg, hsl(0 84% 62%), hsl(38 92% 55%), hsl(160 84% 45%));
   }
 
   .shimmer {

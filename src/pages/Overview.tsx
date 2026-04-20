@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
+import { GlassTooltip } from "@/components/GlassTooltip";
 
 const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
 const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
@@ -72,8 +73,8 @@ const issues = [
   },
 ];
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
+const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } };
 
 function ProgressRing({ value }: { value: number }) {
   const r = 28;
@@ -126,14 +127,14 @@ export default function Overview() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
       >
         {/* NPS */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Net Promoter Score</p>
-              <p className="mt-2 font-data text-4xl font-bold text-positive">+42</p>
+              <p className="mt-2 font-data text-4xl font-bold text-positive glow-text-positive">+42</p>
               <p className="mt-1 text-xs text-muted-foreground">Industry avg: +28</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-positive/15">
@@ -196,7 +197,7 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Review Volume Trend</p>
-              <p className="mt-2 font-data text-4xl font-bold text-warning">+23%</p>
+              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">+23%</p>
               <p className="mt-1 text-xs text-muted-foreground">vs previous period</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
@@ -208,7 +209,7 @@ export default function Overview() {
               <AreaChart data={volumeTrend}>
                 <defs>
                   <linearGradient id="vol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={0.5} />
+                    <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={0.3} />
                     <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -238,7 +239,7 @@ export default function Overview() {
       </motion.div>
 
       {/* Middle */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-5">
+      <div className="mt-6 grid gap-6 lg:grid-cols-5">
         {/* Donut */}
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
@@ -260,18 +261,11 @@ export default function Overview() {
                     <Cell key={i} fill={d.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                />
+                <Tooltip content={<GlassTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <p className="font-data text-3xl font-bold text-foreground">68%</p>
+              <p className="font-data text-3xl font-bold text-positive glow-text-positive">68%</p>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Positive</p>
             </div>
           </div>
@@ -326,7 +320,7 @@ export default function Overview() {
           <AlertTriangle className="h-4 w-4 text-negative" />
           <h3 className="font-display text-base font-semibold">Critical Improvement Areas</h3>
         </div>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {issues.map((issue, i) => (
             <motion.div
               key={issue.title}

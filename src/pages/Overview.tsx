@@ -31,11 +31,11 @@ const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) =>
 const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
 
 const sentimentData = [
-  { name: "Very Positive", value: 42, color: "hsl(160 84% 45%)" },
-  { name: "Positive", value: 26, color: "hsl(160 84% 60%)" },
-  { name: "Neutral", value: 12, color: "hsl(38 92% 55%)" },
-  { name: "Negative", value: 14, color: "hsl(0 84% 65%)" },
-  { name: "Very Negative", value: 6, color: "hsl(0 84% 50%)" },
+  { name: "Very Positive", value: 42, color: "#6EE7B7" },
+  { name: "Positive", value: 26, color: "#A7F3D0" },
+  { name: "Neutral", value: 12, color: "#FED7AA" },
+  { name: "Negative", value: 14, color: "#FBCFE8" },
+  { name: "Very Negative", value: 6, color: "#F9A8D4" },
 ];
 
 const drivers = [
@@ -82,7 +82,7 @@ function ProgressRing({ value }: { value: number }) {
   const offset = c - (value / 100) * c;
   return (
     <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
-      <circle cx="36" cy="36" r={r} stroke="hsl(var(--border))" strokeWidth="6" fill="none" />
+      <circle cx="36" cy="36" r={r} stroke="rgba(31,41,55,0.08)" strokeWidth="6" fill="none" />
       <circle
         cx="36"
         cy="36"

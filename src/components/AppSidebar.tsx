@@ -101,7 +101,7 @@ export function AppSidebar() {
         <AuraBloomLogo size={40} />
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground leading-none">Aura</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground leading-none">re-check</h1>
             <p className="mt-1 text-[10px] font-light tracking-[0.14em] text-muted-foreground">Illuminating Local Growth</p>
           </div>
         )}

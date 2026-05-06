@@ -93,8 +93,8 @@ const deepDiveData: Record<
 function SentimentGauge({ value }: { value: number }) {
   const angle = (value / 100) * 180 - 90;
   return (
-    <div className="relative mx-auto h-32 w-56">
-      <svg viewBox="0 0 200 110" className="h-full w-full">
+    <div className="relative mx-auto w-56">
+      <svg viewBox="0 0 200 130" className="h-full w-full overflow-visible">
         <defs>
           <linearGradient id="gaugeGrad" x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor="hsl(var(--negative))" />
@@ -120,14 +120,22 @@ function SentimentGauge({ value }: { value: number }) {
           initial={{ rotate: -90 }}
           animate={{ rotate: angle }}
           transition={{ duration: 1, ease: "easeOut" }}
-          style={{ transformOrigin: "100px 100px" }}
+          style={{ transformOrigin: "100px 100px", transformBox: "view-box" }}
         />
         <circle cx="100" cy="100" r="6" fill="hsl(var(--foreground))" />
+        <text
+          x="100"
+          y="122"
+          textAnchor="middle"
+          className="font-data fill-foreground"
+          style={{ fontSize: "18px", fontWeight: 700 }}
+        >
+          {value}%
+        </text>
       </svg>
-      <div className="absolute inset-x-0 bottom-0 text-center">
-        <p className="font-data text-2xl font-bold text-foreground">{value}%</p>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Positive</p>
-      </div>
+      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+        Positive
+      </p>
     </div>
   );
 }

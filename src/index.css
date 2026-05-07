@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* RestaurantIQ — Soft & Luminous Glass (Sense-app inspired) */
+    /* Re-check — Soft & Luminous Glass (Sense-app inspired) */
     --background: 240 100% 99%;
     --foreground: 220 26% 18%;            /* charcoal #1F2937-ish */
 
@@ -109,7 +109,7 @@
 }
 
 @layer components {
-  /* Aura Bloom — SVG intelligence logo */
+  /* Re-check Bloom — SVG intelligence logo */
   .aura-bloom {
     transition: filter 350ms ease;
   }

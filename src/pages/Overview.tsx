@@ -29,10 +29,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
 import { getOverviewData } from "../apiService";
 
-const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
-const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
+// === DATOS DE RESPALDO (FALLBACK) POR SI RAILWAY NO TIENE DATOS AÚN ===
+const staticSparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
+const staticVolumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
 
-const sentimentData = [
+const staticSentimentData = [
   { name: "Very Positive", value: 42, color: "#6EE7B7" },
   { name: "Positive", value: 26, color: "#A7F3D0" },
   { name: "Neutral", value: 12, color: "#FED7AA" },
@@ -40,7 +41,7 @@ const sentimentData = [
   { name: "Very Negative", value: 6, color: "#F9A8D4" },
 ];
 
-const drivers = [
+const staticDrivers = [
   { name: "Food Quality", value: 89, tone: "positive" },
   { name: "Service Speed", value: 76, tone: "positive" },
   { name: "Staff Friendliness", value: 71, tone: "positive" },
@@ -48,7 +49,7 @@ const drivers = [
   { name: "Cleanliness", value: 58, tone: "warning" },
 ] as const;
 
-const issues = [
+const staticIssues = [
   {
     title: "Wait Time",
     pct: 78,
@@ -116,10 +117,26 @@ export default function Overview() {
 
   useEffect(() => {
     getOverviewData().then(data => {
+      console.log("Datos recibidos de Railway en Overview:", data);
       if (data) setBackendData(data);
       setLoading(false);
     });
   }, []);
+
+  // Mapeo dinámico: Si existe backendData usa su valor, de lo contrario el estático por seguridad
+  const npsValue = backendData?.nps !== undefined ? backendData.nps : 42;
+  const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
+  const csatValue = backendData?.csat || 4.2;
+  const totalReviews = backendData?.total_reviews || 12847;
+  const reviewVolumeTrend = backendData?.volume_trend_pct !== undefined ? `${backendData.volume_trend_pct}%` : "+23%";
+  const responseRate = backendData?.response_rate || 87;
+
+  // Formatear arrays para gráficos (si vienen del backend procesados o mapeados)
+  const currentSentimentData = backendData?.sentiment_distribution || staticSentimentData;
+  const positiveSentimentPct = currentSentimentData.find(s => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
+  const currentDrivers = backendData?.drivers || staticDrivers;
+  const currentIssues = staticIssues; // Mantenemos los componentes estáticos o dinámicos si agregas iconos dinámicos
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -145,7 +162,7 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Net Promoter Score</p>
-              <p className="mt-2 font-data text-4xl font-bold text-positive glow-text-positive">+42</p>
+              <p className="mt-2 font-data text-4xl font-bold text-positive glow-text-positive">{npsText}</p>
               <p className="mt-1 text-xs text-muted-foreground">Industry avg: +28</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-positive/15">
@@ -158,7 +175,7 @@ export default function Overview() {
             </span>
             <div className="h-10 w-24">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sparkline}>
+                <LineChart data={staticSparkline}>
                   <Line
                     type="monotone"
                     dataKey="v"
@@ -178,9 +195,9 @@ export default function Overview() {
             <div>
               <p className="text-xs font-medium text-muted-foreground">Customer Satisfaction</p>
               <p className="mt-2 font-data text-4xl font-bold text-foreground">
-                4.2<span className="text-2xl text-muted-foreground">/5</span>
+                {csatValue}<span className="text-2xl text-muted-foreground">/5</span>
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Based on 12,847 reviews</p>
+              <p className="mt-1 text-xs text-muted-foreground">Based on {totalReviews.toLocaleString()} reviews</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
               <Star className="h-4 w-4 text-warning" />
@@ -192,7 +209,7 @@ export default function Overview() {
                 <Star
                   key={s}
                   className={`h-3.5 w-3.5 ${
-                    s <= 4 ? "fill-warning text-warning" : "text-muted-foreground/30"
+                    s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"
                   }`}
                 />
               ))}
@@ -208,7 +225,7 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Review Volume Trend</p>
-              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">+23%</p>
+              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">{reviewVolumeTrend}</p>
               <p className="mt-1 text-xs text-muted-foreground">vs previous period</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
@@ -217,7 +234,7 @@ export default function Overview() {
           </div>
           <div className="mt-3 h-12">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={volumeTrend}>
+              <AreaChart data={staticVolumeTrend}>
                 <defs>
                   <linearGradient id="vol" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity={0.3} />
@@ -241,10 +258,10 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Response Rate</p>
-              <p className="mt-2 font-data text-4xl font-bold text-foreground">87%</p>
+              <p className="mt-2 font-data text-4xl font-bold text-foreground">{responseRate}%</p>
               <p className="mt-1 text-xs text-muted-foreground">Reviews responded to</p>
             </div>
-            <ProgressRing value={87} />
+            <ProgressRing value={responseRate} />
           </div>
         </motion.div>
       </motion.div>
@@ -255,35 +272,35 @@ export default function Overview() {
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-semibold">Sentiment Distribution</h3>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">12,847 reviews</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{totalReviews.toLocaleString()} reviews</span>
           </div>
           <div className="relative h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={sentimentData}
+                  data={currentSentimentData}
                   innerRadius={70}
                   outerRadius={100}
                   paddingAngle={3}
                   dataKey="value"
                   stroke="none"
                 >
-                  {sentimentData.map((d, i) => (
-                    <Cell key={i} fill={d.color} />
+                  {currentSentimentData.map((d: any, i: number) => (
+                    <Cell key={i} fill={d.color || "#6EE7B7"} />
                   ))}
                 </Pie>
                 <Tooltip content={<GlassTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <p className="font-data text-3xl font-bold text-positive glow-text-positive">68%</p>
+              <p className="font-data text-3xl font-bold text-positive glow-text-positive">{positiveSentimentPct}%</p>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Positive</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            {sentimentData.map((d) => (
+            {currentSentimentData.map((d: any) => (
               <div key={d.name} className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ background: d.color }} />
+                <span className="h-2 w-2 rounded-full" style={{ background: d.color || "#6EE7B7" }} />
                 <span className="text-muted-foreground">{d.name}</span>
                 <span className="ml-auto font-data text-foreground">{d.value}%</span>
               </div>
@@ -298,7 +315,7 @@ export default function Overview() {
             <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Last 30 days</span>
           </div>
           <div className="space-y-4">
-            {drivers.map((d, i) => (
+            {currentDrivers.map((d: any, i: number) => (
               <motion.div
                 key={d.name}
                 initial={{ opacity: 0, x: -10 }}
@@ -332,46 +349,9 @@ export default function Overview() {
           <h3 className="font-display text-base font-semibold">Critical Improvement Areas</h3>
         </div>
         <div className="grid gap-6 lg:grid-cols-3">
-          {issues.map((issue, i) => (
+          {currentIssues.map((issue, i) => (
             <motion.div
               key={issue.title}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="glass-card-hover relative overflow-hidden p-5"
-            >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-negative/60 to-transparent" />
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15">
-                    <issue.icon className="h-5 w-5 text-negative" />
-                  </div>
-                  <div>
-                    <h4 className="font-display font-semibold text-foreground">{issue.title}</h4>
-                    <p className="font-data text-xs text-negative">{issue.pct}% negative mentions</p>
-                  </div>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                    issue.impact === "High"
-                      ? "bg-negative/15 text-negative"
-                      : "bg-warning/15 text-warning"
-                  }`}
-                >
-                  {issue.impact}
-                </span>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
-              <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                  Suggested action
-                </p>
-                <p className="mt-1 text-sm text-foreground">{issue.action}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </DashboardLayout>
-  );
-}
+              transition={{ delay: i

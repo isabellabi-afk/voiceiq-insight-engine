@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChefHat,
@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
+import { getTopicData } from "../apiService";
 
-const themes = [
+const staticThemes = [
   { id: "food", label: "Food Quality", icon: ChefHat, sentiment: 78, mentions: 8429 },
   { id: "service", label: "Service Experience", icon: Users, sentiment: 64, mentions: 6214 },
   { id: "ambiance", label: "Ambiance & Atmosphere", icon: Home, sentiment: 71, mentions: 4103 },
@@ -24,9 +25,9 @@ const themes = [
   { id: "clean", label: "Cleanliness", icon: Sparkles, sentiment: 81, mentions: 2156 },
 ] as const;
 
-type ThemeId = (typeof themes)[number]["id"];
+type ThemeId = (typeof staticThemes)[number]["id"];
 
-const deepDiveData: Record<
+const staticDeepDiveData: Record<
   ThemeId,
   {
     positive: string[];
@@ -160,8 +161,37 @@ const filterChip =
 
 export default function TopicExplorer() {
   const [selected, setSelected] = useState<ThemeId>("food");
-  const current = themes.find((t) => t.id === selected)!;
-  const data = deepDiveData[selected];
+  
+  // 👇 NUEVO: Estados para manejar los datos de la API de Railway
+  const [themes, setThemes] = useState<any>([...staticThemes]);
+  const [deepDiveData, setDeepDiveData] = useState<any>({ ...staticDeepDiveData });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTopicData().then((data) => {
+      if (data && data.themes && data.deepDiveData) {
+        setThemes(data.themes);
+        setDeepDiveData(data.deepDiveData);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const current = themes.find((t: any) => t.id === selected) || themes[0];
+  const data = deepDiveData[selected] || staticDeepDiveData["food"];
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex h-[60vh] items-center justify-center text-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">Loading Re-check Intelligence Engine...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -189,8 +219,12 @@ export default function TopicExplorer() {
             Sentiment Themes
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            {themes.map((t) => {
+            {themes.map((t: any) => {
               const active = selected === t.id;
+              // Buscamos el icono dinámicamente o por defecto ChefHat
+              const matchedStatic = staticThemes.find((st) => st.id === t.id);
+              const IconComponent = matchedStatic ? matchedStatic.icon : ChefHat;
+
               return (
                 <button
                   key={t.id}
@@ -207,7 +241,7 @@ export default function TopicExplorer() {
                         active ? "bg-primary/20 text-primary" : "bg-white/5 text-foreground/80"
                       }`}
                     >
-                      <t.icon className="h-4 w-4" />
+                      <IconComponent className="h-4 w-4" />
                     </div>
                     <span
                       className={`font-data text-xs font-semibold ${
@@ -277,7 +311,7 @@ export default function TopicExplorer() {
                 <div className="glass-card p-5">
                   <h4 className="mb-3 text-sm font-semibold text-positive">Positive Signals</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.positive.map((t) => (
+                    {data.positive.map((t: string) => (
                       <span
                         key={t}
                         className="rounded-full border border-positive/30 bg-positive/10 px-3 py-1 text-xs font-medium text-positive"
@@ -290,7 +324,7 @@ export default function TopicExplorer() {
                 <div className="glass-card p-5">
                   <h4 className="mb-3 text-sm font-semibold text-negative">Negative Signals</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.negative.map((t) => (
+                    {data.negative.map((t: string) => (
                       <span
                         key={t}
                         className="rounded-full border border-negative/30 bg-negative/10 px-3 py-1 text-xs font-medium text-negative"
@@ -305,7 +339,7 @@ export default function TopicExplorer() {
               <div className="glass-card p-6">
                 <h4 className="mb-4 font-display text-base font-semibold">Representative Reviews</h4>
                 <div className="space-y-3">
-                  {data.reviews.map((r, i) => (
+                  {data.reviews.map((r: any, i: number) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -8 }}
@@ -331,7 +365,7 @@ export default function TopicExplorer() {
                       <p className="text-sm text-foreground/90">"{r.text}"</p>
                       <div className="mt-3 flex items-center justify-between">
                         <div className="flex flex-wrap gap-1.5">
-                          {r.themes.map((th) => (
+                          {r.themes.map((th: string) => (
                             <span
                               key={th}
                               className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"

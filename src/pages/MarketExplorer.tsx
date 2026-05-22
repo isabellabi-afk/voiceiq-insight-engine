@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -29,6 +29,7 @@ import {
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
+import { getMarketData } from "../apiService";
 
 const CITY = "Austin, TX";
 
@@ -45,7 +46,7 @@ interface Competitor {
   weakness: string;
 }
 
-const leaderboard: Competitor[] = [
+const staticLeaderboard: Competitor[] = [
   { rank: 1, name: "Olivetto Trattoria", cuisine: "Italian", rating: 4.8, reviews: 2140, weakness: "Long wait times — mentioned in 38% of reviews" },
   { rank: 2, name: "Sage & Stone", cuisine: "Modern American", rating: 4.7, reviews: 1820, weakness: "Limited vegetarian options" },
   { rank: 3, name: "Casa Verde", cuisine: "Mexican", rating: 4.6, reviews: 3210, weakness: "Inconsistent service on weekends" },
@@ -56,9 +57,9 @@ const leaderboard: Competitor[] = [
   { rank: 8, name: "Pho Saigon", cuisine: "Vietnamese", rating: 4.2, reviews: 1140, weakness: "Limited parking" },
 ];
 
-const localAverage = 4.1;
+const staticLocalAverage = 4.1;
 
-const cuisineBubbles = [
+const staticCuisineBubbles = [
   { cuisine: "Italian", x: 2, y: 3, count: 42, satisfaction: 4.4 },
   { cuisine: "Mexican", x: 5, y: 4, count: 68, satisfaction: 4.3 },
   { cuisine: "American", x: 4, y: 6, count: 55, satisfaction: 4.1 },
@@ -69,7 +70,7 @@ const cuisineBubbles = [
   { cuisine: "BBQ", x: 9, y: 6, count: 35, satisfaction: 4.6 },
 ];
 
-const radarData = [
+const staticRadarData = [
   { dim: "Food", you: 92, city: 78 },
   { dim: "Service", you: 88, city: 72 },
   { dim: "Price", you: 64, city: 74 },
@@ -88,7 +89,41 @@ export default function MarketExplorer() {
   const [filter, setFilter] = useState<Filter>("City-wide");
   const [selected, setSelected] = useState<Competitor | null>(null);
 
-  const yourEntry = useMemo(() => leaderboard.find((c) => c.isYou)!, []);
+  // 👇 NUEVO: Estados dinámicos conectados a tu servicio de Railway
+  const [leaderboard, setLeaderboard] = useState<Competitor[]>([...staticLeaderboard]);
+  const [localAverage, setLocalAverage] = useState<number>(staticLocalAverage);
+  const [cuisineBubbles, setCuisineBubbles] = useState<any[]>([...staticCuisineBubbles]);
+  const [radarData, setRadarData] = useState<any[]>([...staticRadarData]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    getMarketData().then((data) => {
+      if (data) {
+        if (data.leaderboard) setLeaderboard(data.leaderboard);
+        if (data.localAverage) setLocalAverage(data.localAverage);
+        if (data.cuisineBubbles) setCuisineBubbles(data.cuisineBubbles);
+        if (data.radarData) setRadarData(data.radarData);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const yourEntry = useMemo(() => {
+    return leaderboard.find((c) => c.isYou) || leaderboard[3] || staticLeaderboard[3];
+  }, [leaderboard]);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex h-[60vh] items-center justify-center text-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">Loading Re-check Market Matrix...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -284,7 +319,7 @@ export default function MarketExplorer() {
                   cursor={{ strokeDasharray: "3 3" }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
-                    const d = payload[0].payload as (typeof cuisineBubbles)[number];
+                    const d = payload[0].payload;
                     return (
                       <div className="glass-tooltip">
                         <p className="text-sm font-semibold text-foreground">{d.cuisine}</p>
@@ -333,82 +368,4 @@ export default function MarketExplorer() {
               <div className="flex items-start gap-3">
                 <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-positive" strokeWidth={1.75} />
                 <p className="text-sm leading-relaxed text-foreground">
-                  In <span className="font-medium">{CITY}</span>, you are outperforming{" "}
-                  <span className="font-data font-semibold">85%</span> of local competitors in{" "}
-                  <span className="font-medium">Service</span>.
-                </p>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-warning/30 bg-warning/10 p-4">
-              <div className="flex items-start gap-3">
-                <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-warning" strokeWidth={1.75} />
-                <p className="text-sm leading-relaxed text-foreground">
-                  You are <span className="font-data font-semibold">10%</span> behind the city average in{" "}
-                  <span className="font-medium">Price perception</span> — competitors offer better-perceived value.
-                </p>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-white/60 bg-white/40 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Quick win</p>
-              <p className="mt-2 text-sm leading-relaxed text-foreground">
-                Italian restaurants nearby with prix-fixe menus average{" "}
-                <span className="font-data font-semibold">+0.4★</span> higher. Consider a curated tasting menu.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Competitor pop-over */}
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/10 p-6 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25 }}
-              onClick={(e) => e.stopPropagation()}
-              className="glass-card w-full max-w-md p-6"
-            >
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Rank #{selected.rank}</p>
-                  <h4 className="mt-1 font-display text-xl font-medium text-foreground">{selected.name}</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">{selected.cuisine} · {selected.reviews.toLocaleString()} reviews</p>
-                </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/50 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mb-4 flex items-center gap-2">
-                <Star className="h-4 w-4 fill-warning text-warning" />
-                <span className="font-data text-lg font-semibold text-foreground">{selected.rating}</span>
-                <span className="text-xs text-muted-foreground">/ 5.0</span>
-              </div>
-              <div className="rounded-3xl border border-negative/30 bg-negative/10 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-negative">Critical weakness</p>
-                <p className="mt-2 text-sm leading-relaxed text-foreground">{selected.weakness}</p>
-              </div>
-              {!selected.isYou && (
-                <p className="mt-4 text-xs text-muted-foreground">
-                  💡 This is where you can win — emphasize your strength in this area.
-                </p>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </DashboardLayout>
-  );
-}
+                  In <span className="font-medium

@@ -368,4 +368,14 @@ export default function MarketExplorer() {
               <div className="flex items-start gap-3">
                 <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-positive" strokeWidth={1.75} />
                 <p className="text-sm leading-relaxed text-foreground">
-                  In <span className="font-medium
+                  In <span className="font-medium text-foreground">{CITY}</span>, you're outperforming the local median by a healthy margin.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </DashboardLayout>
+  );
+}
+

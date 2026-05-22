@@ -6,6 +6,7 @@ import {
   Target,
   BarChart3,
   MapPin,
+  MessageSquare,
   Database,
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard },
+  { title: "Reviews", path: "/reviews", icon: MessageSquare },
   { title: "Customer Sentiment", path: "/sentiment", icon: Heart },
   { title: "Market Position", path: "/market", icon: Target },
   { title: "Performance Metrics", path: "/performance", icon: BarChart3 },

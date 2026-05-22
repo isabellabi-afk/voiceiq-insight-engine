@@ -26,6 +26,7 @@ import {
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
+import { getOverviewData } from "../apiService";
 
 const sparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
 const volumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
@@ -109,6 +110,15 @@ function ProgressRing({ value }: { value: number }) {
 }
 
 export default function Overview() {
+  const [backendData, setBackendData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getOverviewData().then(data => {
+      if (data) setBackendData(data);
+      setLoading(false);
+    });
+  }, []);
   return (
     <DashboardLayout>
       <PageHeader

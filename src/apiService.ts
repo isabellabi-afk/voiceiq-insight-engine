@@ -52,8 +52,8 @@ export const getReviews = async (): Promise<Review[]> => {
 };
 
 // ── 3. Restaurants ──
-export const getMarketData = async () => {
-  return safeFetch<any[]>("/restaurants");
+export const getMarketData = async (): Promise<any> => {
+  return safeFetch<any>("/restaurants");
 };
 
 // ── 4. Business metrics ──

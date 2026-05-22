@@ -29,7 +29,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
 import { getOverviewData } from "../apiService";
 
-// === DATOS DE RESPALDO (FALLBACK) POR SI RAILWAY NO TIENE DATOS AÚN ===
 const staticSparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
 const staticVolumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
 
@@ -117,13 +116,12 @@ export default function Overview() {
 
   useEffect(() => {
     getOverviewData().then(data => {
-      console.log("Datos recibidos de Railway en Overview:", data);
+      console.log("Datos de Railway:", data);
       if (data) setBackendData(data);
       setLoading(false);
     });
   }, []);
 
-  // Mapeo dinámico: Si existe backendData usa su valor, de lo contrario el estático por seguridad
   const npsValue = backendData?.nps !== undefined ? backendData.nps : 42;
   const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
   const csatValue = backendData?.csat || 4.2;
@@ -131,11 +129,10 @@ export default function Overview() {
   const reviewVolumeTrend = backendData?.volume_trend_pct !== undefined ? `${backendData.volume_trend_pct}%` : "+23%";
   const responseRate = backendData?.response_rate || 87;
 
-  // Formatear arrays para gráficos (si vienen del backend procesados o mapeados)
   const currentSentimentData = backendData?.sentiment_distribution || staticSentimentData;
-  const positiveSentimentPct = currentSentimentData.find(s => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
+  const positiveSentimentPct = currentSentimentData.find((s: any) => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
   const currentDrivers = backendData?.drivers || staticDrivers;
-  const currentIssues = staticIssues; // Mantenemos los componentes estáticos o dinámicos si agregas iconos dinámicos
+  const currentIssues = staticIssues;
 
   return (
     <DashboardLayout>
@@ -150,7 +147,6 @@ export default function Overview() {
         }
       />
 
-      {/* KPI Grid */}
       <motion.div
         variants={container}
         initial="hidden"
@@ -266,7 +262,6 @@ export default function Overview() {
         </motion.div>
       </motion.div>
 
-      {/* Middle */}
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
         {/* Donut */}
         <div className="glass-card p-6 lg:col-span-2">
@@ -342,7 +337,6 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Issues */}
       <div className="mt-8">
         <div className="mb-4 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-negative" />
@@ -354,4 +348,41 @@ export default function Overview() {
               key={issue.title}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i
+              transition={{ delay: i * 0.08 }}
+              className="glass-card-hover relative overflow-hidden p-5"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-negative/60 to-transparent" />
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15">
+                    <issue.icon className="h-5 w-5 text-negative" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-semibold text-foreground">{issue.title}</h4>
+                    <p className="font-data text-xs text-negative">{issue.pct}% negative mentions</p>
+                  </div>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    issue.impact === "High"
+                      ? "bg-negative/15 text-negative"
+                      : "bg-warning/15 text-warning"
+                  }`}
+                >
+                  {issue.impact}
+                </span>
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
+              <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Suggested action
+                </p>
+                <p className="mt-1 text-sm text-foreground">{issue.action}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}

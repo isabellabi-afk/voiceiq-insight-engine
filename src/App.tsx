@@ -8,6 +8,7 @@ import TopicExplorer from "./pages/TopicExplorer";
 import MarketPosition from "./pages/MarketPosition";
 import Performance from "./pages/Performance";
 import MarketExplorer from "./pages/MarketExplorer";
+import Reviews from "./pages/Reviews";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/market" element={<MarketPosition />} />
           <Route path="/performance" element={<Performance />} />
           <Route path="/explorer" element={<MarketExplorer />} />
+          <Route path="/reviews" element={<Reviews />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

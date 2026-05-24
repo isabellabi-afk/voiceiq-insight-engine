@@ -103,9 +103,13 @@ export default function Overview() {
   }, [activeRestaurant]);
 
   // --- LÓGICA DE CONTROL CORPORATIVO BASADO EN EL DATASET REAL ---
-  let totalReviews = backendData?.total_reviews || 0;
-  let csatValue = backendData?.avg_stars || backendData?.csat || 0;
-  let positivePct = backendData?.positive_pct || 75;
+  const activeKPIs = activeRestaurant !== "all" && restaurantKPIs ? restaurantKPIs : backendData;
+
+  let totalReviews = activeKPIs?.total_reviews || 0;
+
+  let csatValue = activeKPIs?.avg_stars || activeKPIs?.csat || 0;
+
+  let positivePct = activeKPIs?.positive_pct || 75;
 
   const npsValue = Math.round(positivePct - 20);
   const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;

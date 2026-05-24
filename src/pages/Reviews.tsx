@@ -57,16 +57,8 @@ export default function Reviews() {
     });
   }, [sentiment, city, factor]);
 
-  const cities = useMemo(
-    () => Array.from(new Set(reviews.map((r) => r.city).filter(Boolean))).sort(),
-    [reviews],
-  );
-
-  const factors = useMemo(
-    () =>
-      Array.from(new Set(reviews.map((r) => r.factor_dominante).filter(Boolean))).sort() as string[],
-    [reviews],
-  );
+  const cities = allCities;
+  const factors = allFactors;
 
   const filtered = useMemo(() => {
     return reviews.filter((r) => {

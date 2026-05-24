@@ -81,7 +81,7 @@ export default function Reviews() {
     loadReviews();
   }, [activeRestaurant]);
 
-  const filteredReviews = dynamicReviews.filter((r) => {
+  const filteredReviews = reviews.filter((r) => {
     const matchesSearch =
       r.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.author.toLowerCase().includes(searchTerm.toLowerCase());
@@ -160,9 +160,9 @@ export default function Reviews() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-foreground">{r.author}</span>
+                    <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
                     <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
-                      {r.location}
+                      {r.city}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export default function Reviews() {
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <Star
                           key={idx}
-                          className={`h-3 w-3 ${idx < r.rating ? "fill-warning text-warning" : "text-muted-foreground/20"}`}
+                          className={`h-3 w-3 ${idx < r.review_stars ? "fill-warning text-warning" : "text-muted-foreground/20"}`}
                         />
                       ))}
                     </div>
@@ -178,10 +178,10 @@ export default function Reviews() {
                   </div>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
-                  {r.platform}
+                  {r.sentiment_binary}
                 </span>
               </div>
-              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">"{r.comment}"</p>
+              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">"{r.text}"</p>
               <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" /> Processed Log

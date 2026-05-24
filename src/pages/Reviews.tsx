@@ -83,9 +83,9 @@ export default function Reviews() {
 
   const filteredReviews = reviews.filter((r) => {
     const matchesSearch =
-      r.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRating = ratingFilter === "all" || r.rating.toString() === ratingFilter;
+      r.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRating = ratingFilter === "all" || r.review_stars?.toString() === ratingFilter;
     return matchesSearch && matchesRating;
   });
 

@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Star,
-  MessageSquare,
-  Activity,
-  AlertTriangle,
-  Clock,
-  Download,
-} from "lucide-react";
+import { Star, MessageSquare, Activity, AlertTriangle, Clock, Download } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
@@ -18,17 +11,6 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } }
 const item = {
   hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-};
-
-// Función para formatear las etiquetas en inglés elegante (ej: "servicio" -> "Service")
-const formatFactorName = (text: string) => {
-  if (!text) return "";
-  const lower = text.toLowerCase();
-  if (lower === "comida") return "Food Quality";
-  if (lower === "servicio") return "Customer Service";
-  if (lower === "ambiente") return "Atmosphere";
-  if (lower === "otros") return "Other Factors";
-  return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 function ProgressRing({ value }: { value: number }) {
@@ -69,14 +51,8 @@ export default function Overview() {
         const overview = await getOverviewData();
         if (overview) setBackendData(overview);
 
-        const driversResponse = await getTopProblemDrivers();
-        if (driversResponse && driversResponse.top_problem_drivers) {
-          const formattedDrivers = driversResponse.top_problem_drivers.map((d: any) => ({
-            name: formatFactorName(d.factor),
-            value: d.negative_reviews
-          }));
-          setDriversData(formattedDrivers);
-        }
+        const drivers = await getTopProblemDrivers();
+        if (drivers) setDriversData(drivers);
       } catch (err) {
         console.error("Error syncing with Railway:", err);
       } finally {
@@ -123,7 +99,6 @@ export default function Overview() {
         }
       />
 
-      {/* KPI CARDS (ENGLISH) */}
       <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {/* NPS */}
         <motion.div variants={item} className="glass-card-hover p-5">
@@ -197,7 +172,6 @@ export default function Overview() {
         </motion.div>
       </motion.div>
 
-      {/* CHARTS SECTION */}
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
         {/* Donut Chart */}
         <div className="glass-card p-6 lg:col-span-2">
@@ -308,4 +282,10 @@ export default function Overview() {
             </motion.div>
           ))}
           {driversData.length === 0 && (
-            <p className="text
+            <p className="text-xs text-muted-foreground col-span-3">Loading backend priorities...</p>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}

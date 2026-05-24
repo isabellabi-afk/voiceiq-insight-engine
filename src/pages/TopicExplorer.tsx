@@ -332,7 +332,13 @@ export function TopicExplorer() {
   }, []);
 
   const activeDeepDive = useMemo(() => {
-    return staticDeepDiveData[selectedTheme];
+    return (
+      staticDeepDiveData[selectedTheme] || {
+        positive: [],
+        negative: [],
+        reviews: [],
+      }
+    );
   }, [selectedTheme]);
 
   return (

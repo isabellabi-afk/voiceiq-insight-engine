@@ -81,36 +81,6 @@ export default function Reviews() {
     loadReviews();
   }, [activeRestaurant]);
 
-  // Generación reactiva de reseñas basada en el restaurante seleccionado
-  const dynamicReviews = useMemo(() => {
-    const isGlobal = activeRestaurant === "all";
-    if (isGlobal) return initialMockReviews;
-
-    const hash = activeRestaurant.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-    // Mutamos dinámicamente las frases para simular logs de lenguaje natural reales
-    return [
-      {
-        id: "dyn-1",
-        author: "Alex P.",
-        location: "Local Hub",
-        rating: Math.min(5, Math.max(1, 3 + (hash % 3))),
-        date: "May 23, 2026",
-        comment: `Visited ${activeRestaurant} last night. The operational flow was interesting, but room for improvement exists.`,
-        platform: "Yelp Core",
-      },
-      {
-        id: "dyn-2",
-        author: "Jessica M.",
-        location: "Local Hub",
-        rating: Math.min(5, Math.max(1, 2 + (hash % 4))),
-        date: "May 21, 2026",
-        comment: `I highly recommend looking into ${activeRestaurant}. Their text NLP sentiment is accurate, and staff was polite.`,
-        platform: "Google Maps",
-      },
-    ];
-  }, [activeRestaurant]);
-
   const filteredReviews = dynamicReviews.filter((r) => {
     const matchesSearch =
       r.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||

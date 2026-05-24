@@ -46,9 +46,23 @@ export interface Review {
   factor_score?: number;
 }
 
-export const getReviews = async (): Promise<Review[]> => {
-  const data = await safeFetch<Review[]>("/reviews");
-  return data ?? [];
+export interface ReviewFilters {
+  sentiment?: string;
+  city?: string;
+  factor?: string;
+  limit?: number;
+}
+
+export const getReviews = async (filters: ReviewFilters = {}): Promise<Review[]> => {
+  const params = new URLSearchParams();
+  if (filters.sentiment && filters.sentiment !== "all") params.set("sentiment", filters.sentiment);
+  if (filters.city && filters.city !== "all") params.set("city", filters.city);
+  if (filters.factor && filters.factor !== "all") params.set("factor", filters.factor);
+  params.set("limit", String(filters.limit ?? 200));
+  const qs = params.toString();
+  const data = await safeFetch<Review[] | { reviews: Review[] }>(`/reviews${qs ? `?${qs}` : ""}`);
+  if (!data) return [];
+  return Array.isArray(data) ? data : (data.reviews ?? []);
 };
 
 // ── 3. Restaurants ──

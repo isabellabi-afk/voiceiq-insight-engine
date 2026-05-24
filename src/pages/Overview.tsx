@@ -81,6 +81,31 @@ export default function Overview() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    async function loadRestaurantKPIs() {
+      if (activeRestaurant === "all") {
+        return;
+      }
+
+      try {
+        const data = await getRestaurantKPIs(activeRestaurant);
+
+        if (data) {
+          setBackendData((prev: any) => ({
+            ...prev,
+            total_reviews: data.total_reviews,
+            avg_stars: data.avg_stars,
+            positive_pct: data.positive_pct,
+          }));
+        }
+      } catch (err) {
+        console.error("Restaurant KPI sync error:", err);
+      }
+    }
+
+    loadRestaurantKPIs();
+  }, [activeRestaurant]);
+
   // --- LÓGICA DE CONTROL CORPORATIVO BASADO EN EL DATASET REAL ---
   let totalReviews = backendData?.total_reviews || 0;
   let csatValue = backendData?.avg_stars || backendData?.csat || 0;

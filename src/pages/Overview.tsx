@@ -91,6 +91,9 @@ export default function Overview() {
       try {
         const data = await getRestaurantKPIs(activeRestaurant);
 
+        console.log("ACTIVE RESTAURANT:", activeRestaurant);
+        console.log("RESTAURANT KPI RESPONSE:", data);
+
         if (data) {
           setRestaurantKPIs(data);
         }

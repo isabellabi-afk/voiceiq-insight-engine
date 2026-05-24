@@ -87,13 +87,12 @@ export default function MarketExplorer() {
   }, []);
 
   // 3. Cruzar la información estática/dinámica con el restaurante activo de Yelp
-  const dynamicContext = useMemo(() => {
-    const isGlobal = activeRestaurant === "all";
-    
-    // Si es global, creamos una entidad "Portfolio" centralizada
-    if (isGlobal) {
-      return {
-        rank: 3,
-        name: "Global Portfolio Avg",
-        cuisine: "
+  const dynamicContext = useMemo(() => { return {
+  rank: 3,
+  name: "Global Portfolio Avg",
+  cuisine: "Aggregated Portfolio", // <-- Asegúrate de que termine así
+  rating: parseFloat(avgRating.toFixed(1)),
+  reviews: totalReviews,
+  distance: 0,
+};
 

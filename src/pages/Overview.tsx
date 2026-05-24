@@ -133,7 +133,7 @@ export default function Overview() {
   const currentSentimentData = backendData?.sentiment_distribution || staticSentimentData;
   const positiveSentimentPct =
     currentSentimentData.find((s: any) => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
-  const currentDrivers = backendData?.drivers || staticDrivers;
+  const currentDrivers = driversData.length > 0 ? driversData : staticDrivers;
   const currentIssues = staticIssues;
 
   return (

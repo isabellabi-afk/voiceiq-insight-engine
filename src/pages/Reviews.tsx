@@ -1,267 +1,125 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, Filter, MessageSquare } from "lucide-react";
+import { Search, Star, Filter, MessageCircle, Building } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { getReviews, type Review } from "../apiService";
-
-const PAGE_SIZE = 25;
+import { getReviews, Review } from "../apiService";
 
 export default function Reviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sentiment, setSentiment] = useState<string>("all");
-  const [city, setCity] = useState<string>("all");
-  const [stars, setStars] = useState<string>("all");
-  const [factor, setFactor] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const [allCities, setAllCities] = useState<string[]>([]);
-  const [allFactors, setAllFactors] = useState<string[]>([]);
-
-  useEffect(() => {
-    getReviews({ limit: 500 }).then((data) => {
-      setAllCities(Array.from(new Set(data.map((r) => r.city).filter(Boolean))).sort());
-      setAllFactors(
-        Array.from(new Set(data.map((r) => r.factor_dominante).filter(Boolean))).sort() as string[],
-      );
-    });
-  }, []);
+  const [sentimentFilter, setSentimentFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     setLoading(true);
-    getReviews({
-      sentiment: sentiment !== "all" ? sentiment : undefined,
-      city: city !== "all" ? city : undefined,
-      factor: factor !== "all" ? factor : undefined,
-      limit: 200,
-    }).then((data) => {
+    getReviews({ sentiment: sentimentFilter, limit: 100 }).then((data) => {
       setReviews(data);
       setLoading(false);
     });
-  }, [sentiment, city, factor]);
+  }, [sentimentFilter]);
 
-  const cities = allCities;
-  const factors = allFactors;
-
-  const filtered = useMemo(() => {
-    return reviews.filter((r) => {
-      if (stars !== "all" && Math.round(r.review_stars) !== Number(stars)) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !r.business_name?.toLowerCase().includes(q) &&
-          !r.text?.toLowerCase().includes(q)
-        )
-          return false;
-      }
-      return true;
-    });
-  }, [reviews, stars, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, sentiment, city, stars, factor]);
-
-  const sentimentBadge = (s: string) => {
-    if (s === "positive")
-      return "bg-positive/15 text-positive";
-    if (s === "negative") return "bg-negative/15 text-negative";
-    return "bg-warning/15 text-warning";
-  };
+  // Filtrado extra por buscador local (nombre de restaurante o texto)
+  const filteredReviews = reviews.filter((r) => 
+    r.business_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.text?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <DashboardLayout>
       <PageHeader
-        eyebrow="Reviews"
-        title="Review Explorer"
-        subtitle="Browse, filter and analyze every customer review from the live dataset."
+        eyebrow="Data"
+        title="Customer Reviews"
+        subtitle="Browse and search through real historical customer feedback processed by the sentiment classifier."
       />
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card mb-6 p-4"
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search business or review text…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-full border-white/60 bg-white/50 pl-9 backdrop-blur-xl"
-            />
-          </div>
-
-          <Select value={sentiment} onValueChange={setSentiment}>
-            <SelectTrigger className="w-[160px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
-              <SelectValue placeholder="Sentiment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All sentiment</SelectItem>
-              <SelectItem value="positive">Positive</SelectItem>
-              <SelectItem value="negative">Negative</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={stars} onValueChange={setStars}>
-            <SelectTrigger className="w-[140px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
-              <SelectValue placeholder="Stars" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All stars</SelectItem>
-              {[5, 4, 3, 2, 1].map((s) => (
-                <SelectItem key={s} value={String(s)}>
-                  {s} stars
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={city} onValueChange={setCity}>
-            <SelectTrigger className="w-[180px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
-              <SelectValue placeholder="City" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">All cities</SelectItem>
-              {cities.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={factor} onValueChange={setFactor}>
-            <SelectTrigger className="w-[170px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
-              <SelectValue placeholder="Factor" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">All factors</SelectItem>
-              {factors.map((f) => (
-                <SelectItem key={f} value={f}>
-                  {f}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-
-
-          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <Filter className="h-3.5 w-3.5" />
-            {loading ? "Loading…" : `${filtered.length.toLocaleString()} of ${reviews.length.toLocaleString()} reviews`}
-          </div>
+      {/* FILTERS BAR */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center justify-between bg-white/40 p-4 rounded-2xl backdrop-blur-md border border-white/60">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by restaurant or text content..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/60 pl-10 pr-4 py-2 text-sm rounded-xl border border-foreground/[0.06] focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
-      </motion.div>
-
-      {/* Table */}
-      <div className="glass-card overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-white/40 hover:bg-transparent">
-              <TableHead>Business</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead className="w-[100px]">Stars</TableHead>
-              <TableHead className="w-[120px]">Sentiment</TableHead>
-              <TableHead>Review</TableHead>
-              <TableHead className="w-[120px]">Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                  Loading reviews…
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && pageData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                  <MessageSquare className="mx-auto mb-2 h-5 w-5 opacity-50" />
-                  No reviews match these filters.
-                </TableCell>
-              </TableRow>
-            )}
-            {pageData.map((r) => (
-              <TableRow key={r.review_id} className="border-white/40">
-                <TableCell className="font-medium text-foreground">{r.business_name}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.city}, {r.state}
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1 font-data text-sm">
-                    <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-                    {r.review_stars}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${sentimentBadge(
-                      r.sentiment_binary,
-                    )}`}
-                  >
-                    {r.sentiment_binary}
-                  </span>
-                </TableCell>
-                <TableCell className="max-w-[500px] text-sm text-foreground/80">
-                  <p className="line-clamp-2">{r.text}</p>
-                </TableCell>
-                <TableCell className="font-data text-xs text-muted-foreground">
-                  {r.date?.slice(0, 10)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {/* Pagination */}
-        {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t border-white/40 px-4 py-3 text-xs text-muted-foreground">
-            <span>
-              Page {page} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <select
+            value={sentimentFilter}
+            onChange={(e) => setSentimentFilter(e.target.value)}
+            className="bg-white/60 text-sm rounded-xl border border-foreground/[0.06] px-3 py-2 focus:outline-none"
+          >
+            <option value="all">All Sentiments</option>
+            <option value="positive">Positive Only</option>
+            <option value="negative">Negative Only</option>
+          </select>
+        </div>
       </div>
+
+      {/* REVIEWS LIST */}
+      {loading ? (
+        <div className="text-center py-20 text-sm text-muted-foreground animate-pulse">
+          Loading processed Yelp reviews...
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredReviews.slice(0, 30).map((review, idx) => (
+            <motion.div
+              key={review.review_id || idx}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(idx * 0.03, 0.3) }}
+              className="glass-card p-5 hover:shadow-md transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-foreground/[0.03] pb-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-semibold text-foreground text-sm">{review.business_name}</span>
+                  <span className="text-xs text-muted-foreground bg-foreground/[0.04] px-2 py-0.5 rounded-full">
+                    {review.city}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-3.5 w-3.5 ${
+                          star <= review.review_stars ? "fill-warning text-warning" : "text-muted-foreground/20"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span
+                    className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                      review.sentiment_binary === "positive"
+                        ? "bg-positive/10 text-positive"
+                        : "bg-negative/10 text-negative"
+                    }`}
+                  >
+                    {review.sentiment_binary}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-foreground/90 leading-relaxed italic">"{review.text}"</p>
+              {review.factor_dominante && (
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>Dominant Factor: <strong className="text-foreground capitalize">{review.factor_dominante}</strong></span>
+                </div>
+              )}
+            </motion.div>
+          ))}
+          {filteredReviews.length === 0 && (
+            <div className="text-center py-12 text-sm text-muted-foreground">
+              No reviews found matching your search.
+            </div>
+          )}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

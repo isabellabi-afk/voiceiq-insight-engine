@@ -67,7 +67,11 @@ export default function Reviews() {
         if (activeRestaurant === "all") {
           setReviews(data);
         } else {
-          const filtered = data.filter((r: any) => r.business_name === activeRestaurant);
+          const filtered = data.filter((r: any) => {
+            if (!r.business_name) return false;
+
+            return r.business_name.trim().toLowerCase() === activeRestaurant.trim().toLowerCase();
+          });
 
           setReviews(filtered);
         }

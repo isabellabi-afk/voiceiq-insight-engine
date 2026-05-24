@@ -151,7 +151,7 @@ export default function Reviews() {
         ) : (
           filteredReviews.map((r, i) => (
             <motion.div
-              key={r.id}
+              key={r.review_id || i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
@@ -160,9 +160,11 @@ export default function Reviews() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {r.business_name || "Unknown Restaurant"}
+                    </span>
                     <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
-                      {r.city}
+                      {r.city || "Unknown City"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -170,7 +172,7 @@ export default function Reviews() {
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <Star
                           key={idx}
-                          className={`h-3 w-3 ${idx < r.review_stars ? "fill-warning text-warning" : "text-muted-foreground/20"}`}
+                          className={`h-3 w-3 ${idx < (r.review_stars || 0) ? "fill-warning text-warning" : "text-muted-foreground/20"}`}
                         />
                       ))}
                     </div>

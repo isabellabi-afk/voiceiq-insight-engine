@@ -60,9 +60,9 @@ export const getReviews = async (filters: ReviewFilters = {}): Promise<Review[]>
   if (filters.factor && filters.factor !== "all") params.set("factor", filters.factor);
   params.set("limit", String(filters.limit ?? 200));
   const qs = params.toString();
-  const data = await safeFetch<Review[] | { reviews: Review[] }>(`/reviews${qs ? `?${qs}` : ""}`);
-  if (!data) return [];
-  return Array.isArray(data) ? data : (data.reviews ?? []);
+  const data = await safeFetch<Review[]>(`/reviews${qs ? `?${qs}` : ""}`);
+
+  return data ?? [];
 };
 
 // ── 3. Restaurants ──

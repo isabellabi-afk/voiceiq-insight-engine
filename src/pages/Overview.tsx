@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
-import { getOverviewData, getTopProblemDrivers, getRealRestaurantsList } from "../apiService";
+import { getOverviewData, getTopProblemDrivers, getRealRestaurantsList, getRestaurantKPIs } from "../apiService";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 const item = {

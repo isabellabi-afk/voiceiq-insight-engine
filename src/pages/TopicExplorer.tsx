@@ -364,7 +364,16 @@ export function TopicExplorer() {
       {/* GRID DE CATEGORÍAS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         {(liveThemes.length ? liveThemes : staticThemes).map((theme) => {
-          const Icon = theme.icon || ChefHat;
+          const iconMap: Record<string, any> = {
+            food: ChefHat,
+            service: Users,
+            ambiance: Home,
+            value: DollarSign,
+            wait: Clock,
+            clean: Sparkles,
+          };
+
+          const Icon = iconMap[theme.id] || ChefHat;
 
           const isSelected = selectedTheme === theme.id;
 

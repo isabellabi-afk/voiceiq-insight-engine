@@ -4,7 +4,7 @@ import { ChefHat, Users, Home, DollarSign, Clock, Sparkles, Star, Building2 } fr
 
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getTopicThemes } from "@/apiService";
+import { getTopicData } from "@/apiService";
 
 const staticThemes = [
   { id: "food", label: "Food Quality", icon: ChefHat, sentiment: 78, mentions: 8429 },
@@ -320,7 +320,7 @@ export function TopicExplorer() {
 
     checkActiveSession();
 
-    getTopicThemes().then((data) => {
+    getTopicData().then((data) => {
       if (data?.length) {
         setLiveThemes(data);
       }

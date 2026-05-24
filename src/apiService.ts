@@ -103,11 +103,17 @@ export const getTopProblemDrivers = async (city?: string) => {
 export const getRealRestaurantsList = async (): Promise<string[]> => {
   const data = await getMarketData();
   if (!data) return [];
-  
+
   // Si data es un array directo de restaurantes:
   const restaurantsArray = Array.isArray(data) ? data : (data.restaurants ?? []);
-  
+
   // Extraemos los nombres únicos de los negocios reales de Yelp
   const names = restaurantsArray.map((r: any) => r.business_name || r.name).filter(Boolean);
   return Array.from(new Set(names)) as string[];
+};
+
+export const getRestaurantKPIs = async (businessName: string) => {
+  const qs = `?business_name=${encodeURIComponent(businessName)}`;
+
+  return safeFetch<any>(`/restaurant-kpis${qs}`);
 };

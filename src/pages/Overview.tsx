@@ -42,6 +42,7 @@ function ProgressRing({ value }: { value: number }) {
 
 export default function Overview() {
   const [backendData, setBackendData] = useState<any>(null);
+  const [restaurantKPIs, setRestaurantKPIs] = useState<any>(null);
   const [driversData, setDriversData] = useState<any[]>([]);
   const [realRestaurants, setRealRestaurants] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);

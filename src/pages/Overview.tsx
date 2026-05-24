@@ -45,7 +45,7 @@ export default function Overview() {
   const [driversData, setDriversData] = useState<any[]>([]);
   const [realRestaurants, setRealRestaurants] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Leemos la sesión del restaurante real desde la memoria global de la app
   const [activeRestaurant, setActiveRestaurant] = useState<string>(() => {
     return localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -97,9 +97,9 @@ export default function Overview() {
 
   const npsValue = Math.round(positivePct - 20);
   const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
-  const responseRate = backendData?.response_rate || 85;
+  const responseRate = 100;
   const negativePct = Math.round(100 - positivePct);
-  
+
   const currentSentimentData = [
     { name: "Positive Reviews", value: positivePct, color: "#6EE7B7" },
     { name: "Negative Reviews", value: negativePct, color: "#F9A8D4" },
@@ -124,7 +124,7 @@ export default function Overview() {
           title="Intelligence Dashboard"
           subtitle="Real-time customer analytics extracted from your processed Yelp SQLite dataset."
         />
-        
+
         {/* Selector de Cliente de Yelp en tiempo real */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/60 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-sm self-start xl:self-center">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
@@ -147,7 +147,12 @@ export default function Overview() {
       </div>
 
       {/* METRIC CARDS GRID */}
-      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
+      >
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -165,7 +170,10 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Average Rating</p>
-              <p className="mt-2 font-data text-4xl font-bold text-foreground">{csatValue}<span className="text-2xl text-muted-foreground">/5</span></p>
+              <p className="mt-2 font-data text-4xl font-bold text-foreground">
+                {csatValue}
+                <span className="text-2xl text-muted-foreground">/5</span>
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">Yelp data rating</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
@@ -175,7 +183,10 @@ export default function Overview() {
           <div className="mt-3 flex items-center justify-between">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className={`h-3.5 w-3.5 ${s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"}`} />
+                <Star
+                  key={s}
+                  className={`h-3.5 w-3.5 ${s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"}`}
+                />
               ))}
             </div>
           </div>
@@ -185,7 +196,9 @@ export default function Overview() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Total Reviews</p>
-              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">{totalReviews.toLocaleString()}</p>
+              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">
+                {totalReviews.toLocaleString()}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">Isolated business logs</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
@@ -216,8 +229,17 @@ export default function Overview() {
           <div className="relative h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={currentSentimentData} innerRadius={70} outerRadius={100} paddingAngle={3} dataKey="value" stroke="none">
-                  {currentSentimentData.map((d: any, i: number) => <Cell key={i} fill={d.color} />)}
+                <Pie
+                  data={currentSentimentData}
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {currentSentimentData.map((d: any, i: number) => (
+                    <Cell key={i} fill={d.color} />
+                  ))}
                 </Pie>
                 <Tooltip content={<GlassTooltip />} />
               </PieChart>
@@ -249,7 +271,12 @@ export default function Overview() {
                 const maxVal = driversData[0]?.value || 100;
                 const barWidth = Math.min((d.value / maxVal) * 100, 100);
                 return (
-                  <motion.div key={d.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
+                  <motion.div
+                    key={d.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                  >
                     <div className="mb-1.5 flex items-center justify-between text-sm">
                       <span className="font-medium text-foreground">{d.name}</span>
                       <span className="font-data text-muted-foreground font-semibold">{d.value} reviews</span>
@@ -280,22 +307,36 @@ export default function Overview() {
         </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {driversData.slice(0, 3).map((issue: any, i: number) => (
-            <motion.div key={issue.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="glass-card-hover relative overflow-hidden p-5">
+            <motion.div
+              key={issue.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="glass-card-hover relative overflow-hidden p-5"
+            >
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-negative/60 to-transparent" />
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15"><Clock className="h-5 w-5 text-negative" /></div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15">
+                    <Clock className="h-5 w-5 text-negative" />
+                  </div>
                   <div>
                     <h4 className="font-display font-semibold text-foreground">{issue.name}</h4>
                     <p className="font-data text-xs text-negative">{issue.value} critical mentions</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-negative/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-negative">High Impact</span>
+                <span className="rounded-full bg-negative/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-negative">
+                  High Impact
+                </span>
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">Volume density detected during NLP review processing for selected branch locations.</p>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Volume density detected during NLP review processing for selected branch locations.
+              </p>
               <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Suggested Action</p>
-                <p className="mt-1 text-sm text-foreground">Audit "{issue.name}" factor using operational action plans.</p>
+                <p className="mt-1 text-sm text-foreground">
+                  Audit "{issue.name}" factor using operational action plans.
+                </p>
               </div>
             </motion.div>
           ))}
@@ -304,4 +345,3 @@ export default function Overview() {
     </DashboardLayout>
   );
 }
-

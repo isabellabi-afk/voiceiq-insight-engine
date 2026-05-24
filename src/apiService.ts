@@ -99,3 +99,15 @@ export const getTopProblemDrivers = async (city?: string) => {
     tone: d.factor === "servicio" ? "warning" : "positive",
   }));
 };
+// ── 5. Extraer nombres únicos de restaurantes reales para los filtros del SaaS ──
+export const getRealRestaurantsList = async (): Promise<string[]> => {
+  const data = await getMarketData();
+  if (!data) return [];
+  
+  // Si data es un array directo de restaurantes:
+  const restaurantsArray = Array.isArray(data) ? data : (data.restaurants ?? []);
+  
+  // Extraemos los nombres únicos de los negocios reales de Yelp
+  const names = restaurantsArray.map((r: any) => r.business_name || r.name).filter(Boolean);
+  return Array.from(new Set(names)) as string[];
+};

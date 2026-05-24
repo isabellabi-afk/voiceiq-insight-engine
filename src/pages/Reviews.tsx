@@ -153,6 +153,21 @@ export default function Reviews() {
             No matching unstructured text feedback found for current filters.
           </div>
         ) : (
+          Reemplaza TODO desde:
+
+filteredReviews.map((r, i) => (
+
+hasta el final del archivo por esto EXACTO:
+
+        {loading ? (
+          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
+            Loading live Yelp review stream...
+          </div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
+            No reviews found for current filters.
+          </div>
+        ) : (
           filteredReviews.map((r, i) => (
             <motion.div
               key={r.review_id || i}
@@ -167,33 +182,50 @@ export default function Reviews() {
                     <span className="text-sm font-semibold text-foreground">
                       {r.business_name || "Unknown Restaurant"}
                     </span>
+
                     <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
                       {r.city || "Unknown City"}
                     </span>
                   </div>
+
                   <div className="flex items-center gap-2">
                     <div className="flex gap-0.5">
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <Star
                           key={idx}
-                          className={`h-3 w-3 ${idx < (r.review_stars || 0) ? "fill-warning text-warning" : "text-muted-foreground/20"}`}
+                          className={`h-3 w-3 ${
+                            idx < Number(r.review_stars || 0)
+                              ? "fill-warning text-warning"
+                              : "text-muted-foreground/20"
+                          }`}
                         />
                       ))}
                     </div>
-                    <span className="text-[11px] text-muted-foreground font-data">{r.date}</span>
+
+                    <span className="text-[11px] text-muted-foreground font-data">
+                      {r.date || "No date"}
+                    </span>
                   </div>
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
-                  {r.sentiment_binary}
+
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary capitalize">
+                  {r.sentiment_binary || "unknown"}
                 </span>
               </div>
-              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">"{r.text}"</p>
+
+              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">
+                "{r.text || "No review text available"}"
+              </p>
+
               <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" /> Processed Log
+                  <MessageSquare className="h-3 w-3" />
+                  Processed Log
                 </span>
+
                 <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
-                  <ThumbsUp className="h-3 w-3" /> Helpful index
+                  <ThumbsUp className="h-3 w-3" />
+                  Helpful index
                 </button>
               </div>
             </motion.div>

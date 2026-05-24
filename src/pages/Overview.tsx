@@ -111,15 +111,6 @@ export default function Overview() {
   let csatValue = backendData?.avg_stars || backendData?.csat || 0;
   let positivePct = backendData?.positive_pct || 75;
 
-  // Si hay un restaurante seleccionado, aislamos sus métricas reales de manera simulada y matemáticamente estable
-  if (activeRestaurant !== "all") {
-    const stringHash = activeRestaurant.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    // Calculamos una proporción creíble basada en vuestra base de datos real
-    totalReviews = Math.round((backendData?.total_reviews || 800) / (realRestaurants.length || 10) + (stringHash % 15));
-    csatValue = Number((3.4 + (stringHash % 14) / 10).toFixed(1));
-    positivePct = Math.round(60 + (stringHash % 31));
-  }
-
   const npsValue = Math.round(positivePct - 20);
   const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
   const responseRate = 100;

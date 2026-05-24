@@ -79,3 +79,24 @@ export const getBusinessMetrics = async () => {
 export const getTopicData = async () => {
   return safeFetch<any>("/factors");
 };
+
+export const getTopProblemDrivers = async (city?: string) => {
+  const qs = city ? `?city=${encodeURIComponent(city)}` : "";
+
+  const data = await safeFetch<any>(`/intelligence/top-problem-drivers${qs}`);
+
+  if (!data) return [];
+
+  return data.top_problem_drivers.map((d: any) => ({
+    name:
+      d.factor === "servicio"
+        ? "Service"
+        : d.factor === "comida"
+          ? "Food Quality"
+          : d.factor === "ambiente"
+            ? "Atmosphere"
+            : "Other",
+    value: d.negative_reviews,
+    tone: d.factor === "servicio" ? "warning" : "positive",
+  }));
+};

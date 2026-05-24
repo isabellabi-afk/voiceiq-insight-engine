@@ -30,24 +30,38 @@ export default function Reviews() {
   const [sentiment, setSentiment] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
   const [stars, setStars] = useState<string>("all");
+  const [factor, setFactor] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [allCities, setAllCities] = useState<string[]>([]);
+  const [allFactors, setAllFactors] = useState<string[]>([]);
 
   useEffect(() => {
-    getReviews().then((data) => {
-      setReviews(data);
-      setLoading(false);
+    getReviews({ limit: 500 }).then((data) => {
+      setAllCities(Array.from(new Set(data.map((r) => r.city).filter(Boolean))).sort());
+      setAllFactors(
+        Array.from(new Set(data.map((r) => r.factor_dominante).filter(Boolean))).sort() as string[],
+      );
     });
   }, []);
 
-  const cities = useMemo(
-    () => Array.from(new Set(reviews.map((r) => r.city).filter(Boolean))).sort(),
-    [reviews],
-  );
+  useEffect(() => {
+    setLoading(true);
+    getReviews({
+      sentiment: sentiment !== "all" ? sentiment : undefined,
+      city: city !== "all" ? city : undefined,
+      factor: factor !== "all" ? factor : undefined,
+      limit: 200,
+    }).then((data) => {
+      setReviews(data);
+      setLoading(false);
+    });
+  }, [sentiment, city, factor]);
+
+  const cities = allCities;
+  const factors = allFactors;
 
   const filtered = useMemo(() => {
     return reviews.filter((r) => {
-      if (sentiment !== "all" && r.sentiment_binary !== sentiment) return false;
-      if (city !== "all" && r.city !== city) return false;
       if (stars !== "all" && Math.round(r.review_stars) !== Number(stars)) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -59,14 +73,14 @@ export default function Reviews() {
       }
       return true;
     });
-  }, [reviews, sentiment, city, stars, search]);
+  }, [reviews, stars, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [search, sentiment, city, stars]);
+  }, [search, sentiment, city, stars, factor]);
 
   const sentimentBadge = (s: string) => {
     if (s === "positive")
@@ -138,6 +152,22 @@ export default function Reviews() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select value={factor} onValueChange={setFactor}>
+            <SelectTrigger className="w-[170px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
+              <SelectValue placeholder="Factor" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">All factors</SelectItem>
+              {factors.map((f) => (
+                <SelectItem key={f} value={f}>
+                  {f}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+
 
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />

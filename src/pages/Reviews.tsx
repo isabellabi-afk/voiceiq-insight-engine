@@ -32,6 +32,17 @@ export default function Reviews() {
   const [stars, setStars] = useState<string>("all");
   const [factor, setFactor] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [allCities, setAllCities] = useState<string[]>([]);
+  const [allFactors, setAllFactors] = useState<string[]>([]);
+
+  useEffect(() => {
+    getReviews({ limit: 500 }).then((data) => {
+      setAllCities(Array.from(new Set(data.map((r) => r.city).filter(Boolean))).sort());
+      setAllFactors(
+        Array.from(new Set(data.map((r) => r.factor_dominante).filter(Boolean))).sort() as string[],
+      );
+    });
+  }, []);
 
   useEffect(() => {
     setLoading(true);

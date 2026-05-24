@@ -13,21 +13,11 @@ import {
   ChefHat,
   Download,
 } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, LineChart, Line, Tooltip } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { GlassTooltip } from "@/components/GlassTooltip";
-import { getOverviewData } from "../apiService";
+import { getOverviewData, getTopProblemDrivers } from "../apiService";
 
 const staticSparkline = [12, 15, 14, 18, 22, 28, 26, 32, 35, 38, 41, 42].map((v, i) => ({ i, v }));
 const staticVolumeTrend = [120, 135, 142, 168, 180, 220].map((v, i) => ({ i, v }));
@@ -76,7 +66,10 @@ const staticIssues = [
 ];
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
-const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } };
+const item = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
 
 function ProgressRing({ value }: { value: number }) {
   const r = 28;
@@ -98,12 +91,7 @@ function ProgressRing({ value }: { value: number }) {
         transform="rotate(-90 36 36)"
         style={{ transition: "stroke-dashoffset 1s ease-out" }}
       />
-      <text
-        x="36"
-        y="40"
-        textAnchor="middle"
-        className="font-data fill-foreground text-[13px] font-semibold"
-      >
+      <text x="36" y="40" textAnchor="middle" className="font-data fill-foreground text-[13px] font-semibold">
         {value}%
       </text>
     </svg>
@@ -115,7 +103,7 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getOverviewData().then(data => {
+    getOverviewData().then((data) => {
       console.log("Datos de Railway:", data);
       if (data) setBackendData(data);
       setLoading(false);
@@ -130,7 +118,8 @@ export default function Overview() {
   const responseRate = backendData?.response_rate || 87;
 
   const currentSentimentData = backendData?.sentiment_distribution || staticSentimentData;
-  const positiveSentimentPct = currentSentimentData.find((s: any) => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
+  const positiveSentimentPct =
+    currentSentimentData.find((s: any) => s.name === "Very Positive" || s.name === "Positive")?.value || 68;
   const currentDrivers = backendData?.drivers || staticDrivers;
   const currentIssues = staticIssues;
 
@@ -172,13 +161,7 @@ export default function Overview() {
             <div className="h-10 w-24">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={staticSparkline}>
-                  <Line
-                    type="monotone"
-                    dataKey="v"
-                    stroke="hsl(var(--positive))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
+                  <Line type="monotone" dataKey="v" stroke="hsl(var(--positive))" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -191,7 +174,8 @@ export default function Overview() {
             <div>
               <p className="text-xs font-medium text-muted-foreground">Customer Satisfaction</p>
               <p className="mt-2 font-data text-4xl font-bold text-foreground">
-                {csatValue}<span className="text-2xl text-muted-foreground">/5</span>
+                {csatValue}
+                <span className="text-2xl text-muted-foreground">/5</span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">Based on {totalReviews.toLocaleString()} reviews</p>
             </div>
@@ -237,13 +221,7 @@ export default function Overview() {
                     <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke="hsl(var(--warning))"
-                  strokeWidth={2}
-                  fill="url(#vol)"
-                />
+                <Area type="monotone" dataKey="v" stroke="hsl(var(--warning))" strokeWidth={2} fill="url(#vol)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -267,7 +245,9 @@ export default function Overview() {
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-semibold">Sentiment Distribution</h3>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{totalReviews.toLocaleString()} reviews</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {totalReviews.toLocaleString()} reviews
+            </span>
           </div>
           <div className="relative h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -364,9 +344,7 @@ export default function Overview() {
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                    issue.impact === "High"
-                      ? "bg-negative/15 text-negative"
-                      : "bg-warning/15 text-warning"
+                    issue.impact === "High" ? "bg-negative/15 text-negative" : "bg-warning/15 text-warning"
                   }`}
                 >
                   {issue.impact}
@@ -374,9 +352,7 @@ export default function Overview() {
               </div>
               <p className="mt-4 text-xs text-muted-foreground">{issue.detail}</p>
               <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                  Suggested action
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Suggested action</p>
                 <p className="mt-1 text-sm text-foreground">{issue.action}</p>
               </div>
             </motion.div>

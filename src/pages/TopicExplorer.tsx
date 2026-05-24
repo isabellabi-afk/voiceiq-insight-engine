@@ -401,18 +401,18 @@ export function TopicExplorer() {
                 </div>
 
                 <span className="text-[11px] font-medium text-muted-foreground">
-                  {theme.mentions.toLocaleString()} clusters
+                  {(theme.mentions || theme.total || 0).toLocaleString()} clusters
                 </span>
               </div>
 
-              <h4 className="text-xs font-semibold text-foreground mb-1">{theme.label}</h4>
+              <h4 className="text-xs font-semibold text-foreground mb-1">{theme.label || theme.factor}</h4>
 
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-full bg-foreground/[0.04] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width: `${theme.sentiment}%`,
+                      width: `${theme.sentiment || Math.round((theme.positives / theme.total) * 100) || 0}%`,
                       backgroundColor:
                         theme.sentiment > 70
                           ? "rgb(34, 197, 94)"
@@ -423,7 +423,9 @@ export function TopicExplorer() {
                   />
                 </div>
 
-                <span className="text-[11px] font-bold text-foreground">{theme.sentiment}%</span>
+                <span className="text-[11px] font-bold text-foreground">
+                  {theme.sentiment || Math.round((theme.positives / theme.total) * 100) || 0}%
+                </span>
               </div>
             </button>
           );

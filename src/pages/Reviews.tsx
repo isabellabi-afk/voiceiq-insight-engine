@@ -153,6 +153,22 @@ export default function Reviews() {
             </SelectContent>
           </Select>
 
+          <Select value={factor} onValueChange={setFactor}>
+            <SelectTrigger className="w-[170px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
+              <SelectValue placeholder="Factor" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">All factors</SelectItem>
+              {factors.map((f) => (
+                <SelectItem key={f} value={f}>
+                  {f}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+
+
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />
             {loading ? "Loading…" : `${filtered.length.toLocaleString()} of ${reviews.length.toLocaleString()} reviews`}

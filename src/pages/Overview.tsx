@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Star, MessageSquare, Activity, AlertTriangle, Clock, Download, ShieldCheck } from "lucide-react";
+import { Star, MessageSquare, Activity, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
@@ -45,8 +45,18 @@ export default function Overview() {
   const [driversData, setDriversData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Selector dinámico de cuenta de restaurante para simular multi-tenant / Login
-  const [selectedProfile, setSelectedProfile] = useState<string>("all");
+  // Leemos si ya había una marca guardada en el navegador; si no, por defecto "all"
+  const [activeBrand, setActiveBrand] = useState<string>(() => {
+    return localStorage.getItem("selected_restaurant_brand") || "all";
+  });
+
+  // Cada vez que cambie la marca en el desplegable, la guardamos en la memoria global
+  const handleBrandChange = (brand: string) => {
+    setActiveBrand(brand);
+    localStorage.setItem("selected_restaurant_brand", brand);
+    // Disparamos un evento para avisarle al menú lateral u otras partes de la app que cambió la sesión
+    window.dispatchEvent(new Event("storage"));
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -55,8 +65,13 @@ export default function Overview() {
         const overview = await getOverviewData();
         if (overview) setBackendData(overview);
 
-        // Pasamos el filtro al backend (vuestra función nativa ya lo acepta)
-        const drivers = await getTopProblemDrivers(selectedProfile === "all" ? undefined : selectedProfile);
+        // Mapeamos marcas a ciudades de vuestro dataset para simular la petición real al backend
+        let cityFilter: string | undefined = undefined;
+        if (activeBrand === "Taco Bell") cityFilter = "Santa Barbara";
+        if (activeBrand === "Del Taco") cityFilter = "Carpinteria";
+        if (activeBrand === "El Charro") cityFilter = "Goleta";
+
+        const drivers = await getTopProblemDrivers(cityFilter);
         if (drivers) setDriversData(drivers);
       } catch (err) {
         console.error("Error syncing with Railway:", err);
@@ -65,20 +80,18 @@ export default function Overview() {
       }
     }
     loadData();
-  }, [selectedProfile]);
+  }, [activeBrand]);
 
-  // --- LÓGICA DE SIMULACIÓN MULTI-RESTAURANTE PARA EL FRONTEND ---
-  // Si selecciona un perfil de restaurante individual, simulamos la fragmentación proporcional del dataset corporativo
+  // --- SIMULACIÓN DE SEGMENTACIÓN CORPORATIVA ---
   let totalReviews = backendData?.total_reviews || 0;
   let csatValue = backendData?.csat || 0;
   let positivePct = backendData?.positive_pct || 75;
 
-  if (selectedProfile !== "all") {
-    // Simulamos variaciones realistas según el perfil seleccionado para que los gráficos cambien con coherencia
-    const hash = selectedProfile.length;
-    totalReviews = Math.round((backendData?.total_reviews || 1000) / (backendData?.cities?.length || 4) + (hash * 3));
-    csatValue = Number((3.5 + (hash % 15) / 10).toFixed(2));
-    positivePct = Math.round(65 + (hash % 25));
+  if (activeBrand !== "all") {
+    const hash = activeBrand.length;
+    totalReviews = Math.round((backendData?.total_reviews || 1200) / 4 + (hash * 12));
+    csatValue = activeBrand === "Taco Bell" ? 3.9 : activeBrand === "Del Taco" ? 4.1 : 3.6;
+    positivePct = activeBrand === "Taco Bell" ? 78 : activeBrand === "Del Taco" ? 82 : 69;
   }
 
   const npsValue = Math.round(positivePct - 20);
@@ -95,7 +108,7 @@ export default function Overview() {
     return (
       <DashboardLayout>
         <div className="flex h-96 items-center justify-center text-sm text-muted-foreground animate-pulse">
-          Filtering and synchronizing location data from Railway...
+          Loading dedicated brand space analytics from Railway...
         </div>
       </DashboardLayout>
     );
@@ -103,7 +116,6 @@ export default function Overview() {
 
   return (
     <DashboardLayout>
-      {/* SECCIÓN SUPERIOR INTERACTIVA: CABECERA + SELECTOR DE SESIÓN MULTI-RESTAURANTE */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 border-b border-foreground/[0.04] pb-6">
         <PageHeader
           eyebrow="Overview"
@@ -111,30 +123,27 @@ export default function Overview() {
           subtitle="Real-time customer analytics extracted from your processed Yelp SQLite dataset."
         />
         
-        {/* Selector de Perfil / Cuenta de Restaurante Simulada */}
+        {/* Selector de Sesión de Empresa Activa (SaaS real) */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/60 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-sm self-start xl:self-center">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-            <span>Active Session Profile:</span>
+            <span>Active Client Session:</span>
           </div>
           <select
-            value={selectedProfile}
-            onChange={(e) => setSelectedProfile(e.target.value)}
-            className="bg-white text-xs font-medium rounded-xl border border-foreground/[0.06] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer text-foreground shadow-sm w-full sm:w-auto min-w-[240px]"
+            value={activeBrand}
+            onChange={(e) => handleBrandChange(e.target.value)}
+            className="bg-white text-xs font-medium rounded-xl border border-foreground/[0.06] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer text-foreground shadow-sm w-full sm:w-auto min-w-[245px]"
           >
-            <option value="all">🌐 Global Administrator (All Locations)</option>
-            {backendData?.cities?.map((city: string) => (
-              <option key={city} value={city}>
-                🏢 Manager Profile — {city} Branch
-              </option>
-            ))}
+            <option value="all">🌐 Global Admin (All Dataset Entities)</option>
+            <option value="Taco Bell">🌮 Taco Bell Inc. Corporate</option>
+            <option value="Del Taco">🌯 Del Taco Restaurants</option>
+            <option value="El Charro">🥗 El Charro Mexican Grill</option>
           </select>
         </div>
       </div>
 
       {/* METRIC CARDS GRID */}
       <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {/* NPS */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -148,16 +157,12 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* CSAT */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Average Rating</p>
-              <p className="mt-2 font-data text-4xl font-bold text-foreground">
-                {csatValue}
-                <span className="text-2xl text-muted-foreground">/5</span>
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">Yelp star rating</p>
+              <p className="mt-2 font-data text-4xl font-bold text-foreground">{csatValue}<span className="text-2xl text-muted-foreground">/5</span></p>
+              <p className="mt-1 text-xs text-muted-foreground">Yelp brand rating</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
               <Star className="h-4 w-4 text-warning" />
@@ -166,26 +171,18 @@ export default function Overview() {
           <div className="mt-3 flex items-center justify-between">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  className={`h-3.5 w-3.5 ${
-                    s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"
-                  }`}
-                />
+                <Star key={s} className={`h-3.5 w-3.5 ${s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"}`} />
               ))}
             </div>
           </div>
         </motion.div>
 
-        {/* Total Reviews */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Total Reviews</p>
-              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">
-                {totalReviews.toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">Filtered workspace records</p>
+              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">{totalReviews.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Brand workspace records</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
               <MessageSquare className="h-4 w-4 text-warning" />
@@ -193,7 +190,6 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* Dataset Coverage */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -208,7 +204,6 @@ export default function Overview() {
 
       {/* CHARTS CONTAINER */}
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
-        {/* Donut Chart */}
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-semibold">Sentiment Distribution</h3>
@@ -218,9 +213,7 @@ export default function Overview() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={currentSentimentData} innerRadius={70} outerRadius={100} paddingAngle={3} dataKey="value" stroke="none">
-                  {currentSentimentData.map((d: any, i: number) => (
-                    <Cell key={i} fill={d.color} />
-                  ))}
+                  {currentSentimentData.map((d: any, i: number) => <Cell key={i} fill={d.color} />)}
                 </Pie>
                 <Tooltip content={<GlassTooltip />} />
               </PieChart>
@@ -241,7 +234,6 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* TOP PROBLEM DRIVERS */}
         <div className="glass-card p-6 lg:col-span-3">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="font-display text-base font-semibold">Top Drivers of Negative Sentiment</h3>
@@ -252,7 +244,6 @@ export default function Overview() {
               driversData.map((d: any, i: number) => {
                 const maxVal = driversData[0]?.value || 100;
                 const barWidth = Math.min((d.value / maxVal) * 100, 100);
-
                 return (
                   <motion.div key={d.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
                     <div className="mb-1.5 flex items-center justify-between text-sm">
@@ -285,42 +276,29 @@ export default function Overview() {
         </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {driversData.slice(0, 3).map((issue: any, i: number) => (
-            <motion.div
-              key={issue.name}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="glass-card-hover relative overflow-hidden p-5"
-            >
+            <motion.div key={issue.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="glass-card-hover relative overflow-hidden p-5">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-negative/60 to-transparent" />
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15">
-                    <Clock className="h-5 w-5 text-negative" />
-                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-negative/15"><Clock className="h-5 w-5 text-negative" /></div>
                   <div>
                     <h4 className="font-display font-semibold text-foreground">{issue.name}</h4>
                     <p className="font-data text-xs text-negative">{issue.value} critical mentions</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-negative/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-negative">
-                  High Impact
-                </span>
+                <span className="rounded-full bg-negative/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-negative">High Impact</span>
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Volume density detected during NLP review processing for selected branch locations.
-              </p>
+              <p className="mt-4 text-xs text-muted-foreground">Volume density detected during NLP review processing for selected branch locations.</p>
               <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Suggested Action</p>
                 <p className="mt-1 text-sm text-foreground">Audit "{issue.name}" factor using operational action plans.</p>
               </div>
             </motion.div>
           ))}
-          {driversData.length === 0 && (
-            <p className="text-xs text-muted-foreground col-span-3 py-4">No high impact actions required for this profile.</p>
-          )}
+          {driversData.length === 0 && <p className="text-xs text-muted-foreground col-span-3 py-4">No high impact actions required for this profile.</p>}
         </div>
       </div>
     </DashboardLayout>
   );
 }
+

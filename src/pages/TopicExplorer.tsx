@@ -117,3 +117,27 @@ function SentimentGauge({ value }: { value: number }) {
           x2="100"
           y2="28"
           stroke="hsl(var(--foreground))"
+          strokeWidth="3"
+          strokeLinecap="round"
+          initial={{ rotate: -90 }}
+          animate={{ rotate: angle }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          style={{ transformOrigin: "100px 100px", transformBox: "view-box" }}
+        />
+        <circle cx="100" cy="100" r="6" fill="hsl(var(--foreground))" />
+        <text
+          x="100"
+          y="122"
+          textAnchor="middle"
+          className="font-data fill-foreground"
+          style={{ fontSize: "18px", fontWeight: 700 }}
+        >
+          {value}%
+        </text>
+      </svg>
+      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+        Positive Ratio
+      </p>
+    </div>
+  );
+}

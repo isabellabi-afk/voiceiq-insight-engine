@@ -30,14 +30,21 @@ export default function Reviews() {
   const [sentiment, setSentiment] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
   const [stars, setStars] = useState<string>("all");
+  const [factor, setFactor] = useState<string>("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    getReviews().then((data) => {
+    setLoading(true);
+    getReviews({
+      sentiment: sentiment !== "all" ? sentiment : undefined,
+      city: city !== "all" ? city : undefined,
+      factor: factor !== "all" ? factor : undefined,
+      limit: 200,
+    }).then((data) => {
       setReviews(data);
       setLoading(false);
     });
-  }, []);
+  }, [sentiment, city, factor]);
 
   const cities = useMemo(
     () => Array.from(new Set(reviews.map((r) => r.city).filter(Boolean))).sort(),

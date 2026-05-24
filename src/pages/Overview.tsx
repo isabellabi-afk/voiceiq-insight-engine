@@ -100,6 +100,7 @@ function ProgressRing({ value }: { value: number }) {
 
 export default function Overview() {
   const [backendData, setBackendData] = useState<any>(null);
+  const [driversData, setDriversData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

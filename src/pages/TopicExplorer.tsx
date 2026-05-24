@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getTopicData } from "../apiService";
 
 const staticThemes = [
   { id: "food", label: "Food Quality", icon: ChefHat, sentiment: 78, mentions: 8429 },
@@ -101,43 +100,3 @@ function SentimentGauge({ value }: { value: number }) {
           <linearGradient id="gaugeGrad" x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor="hsl(var(--negative))" />
             <stop offset="50%" stopColor="hsl(var(--warning))" />
-            <stop offset="100%" stopColor="hsl(var(--positive))" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M 15 100 A 85 85 0 0 1 185 100"
-          stroke="url(#gaugeGrad)"
-          strokeWidth="14"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <motion.line
-          x1="100"
-          y1="100"
-          x2="100"
-          y2="28"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="3"
-          strokeLinecap="round"
-          initial={{ rotate: -90 }}
-          animate={{ rotate: angle }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          style={{ transformOrigin: "100px 100px", transformBox: "view-box" }}
-        />
-        <circle cx="100" cy="100" r="6" fill="hsl(var(--foreground))" />
-        <text
-          x="100"
-          y="122"
-          textAnchor="middle"
-          className="font-data fill-foreground"
-          style={{ fontSize: "18px", fontWeight: 700 }}
-        >
-          {value}%
-        </text>
-      </svg>
-      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-        Positive Ratio
-      </p>
-    </div>
-  );
-}

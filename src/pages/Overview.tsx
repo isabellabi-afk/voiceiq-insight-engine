@@ -92,12 +92,7 @@ export default function Overview() {
         const data = await getRestaurantKPIs(activeRestaurant);
 
         if (data) {
-          setBackendData((prev: any) => ({
-            ...prev,
-            total_reviews: data.total_reviews,
-            avg_stars: data.avg_stars,
-            positive_pct: data.positive_pct,
-          }));
+          setRestaurantKPIs(data);
         }
       } catch (err) {
         console.error("Restaurant KPI sync error:", err);

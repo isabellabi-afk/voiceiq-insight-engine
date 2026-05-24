@@ -51,10 +51,14 @@ export default function Reviews() {
     [reviews],
   );
 
+  const factors = useMemo(
+    () =>
+      Array.from(new Set(reviews.map((r) => r.factor_dominante).filter(Boolean))).sort() as string[],
+    [reviews],
+  );
+
   const filtered = useMemo(() => {
     return reviews.filter((r) => {
-      if (sentiment !== "all" && r.sentiment_binary !== sentiment) return false;
-      if (city !== "all" && r.city !== city) return false;
       if (stars !== "all" && Math.round(r.review_stars) !== Number(stars)) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -66,14 +70,14 @@ export default function Reviews() {
       }
       return true;
     });
-  }, [reviews, sentiment, city, stars, search]);
+  }, [reviews, stars, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [search, sentiment, city, stars]);
+  }, [search, sentiment, city, stars, factor]);
 
   const sentimentBadge = (s: string) => {
     if (s === "positive")

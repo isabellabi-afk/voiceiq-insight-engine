@@ -104,11 +104,23 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getOverviewData().then((data) => {
-      console.log("Datos de Railway:", data);
-      if (data) setBackendData(data);
+    async function loadData() {
+      const overview = await getOverviewData();
+
+      if (overview) {
+        setBackendData(overview);
+      }
+
+      const drivers = await getTopProblemDrivers();
+
+      if (drivers) {
+        setDriversData(drivers);
+      }
+
       setLoading(false);
-    });
+    }
+
+    loadData();
   }, []);
 
   const npsValue = backendData?.nps !== undefined ? backendData.nps : 42;

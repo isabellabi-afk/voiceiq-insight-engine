@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Overview from "./pages/Overview";
-import TopicExplorer from "./pages/TopicExplorer";
+import {TopicExplorer}from "./pages/TopicExplorer";
 import MarketPosition from "./pages/MarketPosition";
 import Performance from "./pages/Performance";
 import MarketExplorer from "./pages/MarketExplorer";

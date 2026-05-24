@@ -320,7 +320,7 @@ export function TopicExplorer() {
 
     checkActiveSession();
 
-    getTopicThemes().then((data) => {
+    getTopicData().then((data) => {
       if (data?.length) {
         setLiveThemes(data);
       }

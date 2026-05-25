@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
+
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -9,7 +11,7 @@ export default function Reviews() {
 
   return (
     <DashboardLayout>
-      <PageHeader eyebrow="Feedback" title="Customer Reviews Log" subtitle="Lucide reconstruction test." />
+      <PageHeader eyebrow="Feedback" title="Customer Reviews Log" subtitle="Framer Motion reconstruction test." />
 
       <div style={{ padding: 40 }}>
         <div
@@ -27,15 +29,26 @@ export default function Reviews() {
           <ThumbsUp size={18} />
         </div>
 
-        <h1>Reviews Page Working</h1>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{
+            padding: 20,
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.4)",
+          }}
+        >
+          <h1>Reviews Page Working</h1>
 
-        <p>{count}</p>
+          <p>{count}</p>
 
-        <div>
-          <h2>Lucide Test</h2>
+          <div>
+            <h2>Motion Test</h2>
 
-          <p>Icons rendering successfully.</p>
-        </div>
+            <p>Framer Motion rendering successfully.</p>
+          </div>
+        </motion.div>
       </div>
     </DashboardLayout>
   );

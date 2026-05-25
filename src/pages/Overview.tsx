@@ -116,7 +116,22 @@ export default function Reviews() {
     const matchesRestaurant =
       activeRestaurant === "all"
         ? true
-        : r.business_name?.trim().toLowerCase() === activeRestaurant?.trim().toLowerCase();
+        : (() => {
+            const business = String(r.business_name || "")
+              .trim()
+              .toLowerCase();
+
+            const active = String(activeRestaurant || "")
+              .trim()
+              .toLowerCase();
+
+            console.log("RESTAURANT_MATCH_CHECK", {
+              business,
+              active,
+            });
+
+            return business.includes(active) || active.includes(business);
+          })();
 
     // =====================================================
     // SEARCH FILTER

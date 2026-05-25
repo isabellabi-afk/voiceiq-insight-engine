@@ -99,6 +99,17 @@ export default function Reviews() {
   }, []);
 
   // =========================================================
+  // DEBUG
+  // =========================================================
+
+  console.log("DEBUG_ACTIVE_RESTAURANT", activeRestaurant);
+
+  console.log(
+    "DEBUG_AVAILABLE_RESTAURANTS",
+    reviews.map((r) => r.business_name),
+  );
+
+  // =========================================================
   // RESTAURANT FILTER
   // =========================================================
 
@@ -106,7 +117,11 @@ export default function Reviews() {
     activeRestaurant === "all"
       ? reviews
       : reviews.filter((r) => {
-          return r.business_name.trim().toLowerCase() === activeRestaurant.trim().toLowerCase();
+          const business = r.business_name?.trim()?.toLowerCase() || "";
+
+          const active = activeRestaurant?.trim()?.toLowerCase() || "";
+
+          return business.includes(active) || active.includes(business);
         });
 
   // =========================================================

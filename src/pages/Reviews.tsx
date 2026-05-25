@@ -1,9 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, MessageSquare, Building2, ThumbsUp } from "lucide-react";
+import { Search, Star, MessageSquare, Filter, Building2, Calendar, ThumbsUp } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getReviews } from "@/apiService";
+
+// Dataset estático de contingencia
+const initialMockReviews = [
+  {
+    id: "1",
+    author: "Sarah J.",
+    location: "San Francisco",
+    rating: 5,
+    date: "May 22, 2026",
+    comment: "Absolutely incredible experience! The service was lighting fast and the atmosphere was unmatched.",
+    platform: "Yelp Core",
+  },
+  {
+    id: "2",
+    author: "Michael K.",
+    location: "New York",
+    rating: 2,
+    date: "May 20, 2026",
+    comment: "The food quality was sub-par for the pricing structure. Under-seasoned options all around.",
+    platform: "Google Maps",
+  },
+  {
+    id: "3",
+    author: "Elena R.",
+    location: "Chicago",
+    rating: 4,
+    date: "May 19, 2026",
+    comment: "Very well managed location. Restrooms were spotless and booking via OpenTable was seamless.",
+    platform: "OpenTable",
+  },
+];
 
 export default function Reviews() {
   const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
@@ -14,38 +45,77 @@ export default function Reviews() {
 
   useEffect(() => {
     const checkActiveSession = () => {
-      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
+      const saved =
+        localStorage.getItem("selected_yelp_restaurant") || "all";
+
       setActiveRestaurant(saved);
     };
+
     checkActiveSession();
+
     window.addEventListener("storage", checkActiveSession);
-    return () => window.removeEventListener("storage", checkActiveSession);
+
+    return () =>
+      window.removeEventListener("storage", checkActiveSession);
   }, []);
 
   useEffect(() => {
     async function loadReviews() {
       try {
         setLoading(true);
-        const data = await getReviews({ limit: 100 });
-        if (!data) return;
+
+        const data = await getReviews({
+          limit: 100,
+        });
+
+        console.log("DEBUG_REVIEWS_RAW", data);
+        console.log("DEBUG_REVIEWS_IS_ARRAY", Array.isArray(data));
+        console.log(
+          "DEBUG_REVIEWS_LENGTH",
+          Array.isArray(data) ? data.length : "NOT_ARRAY"
+        );
+
+        if (!Array.isArray(data)) {
+          console.error("DEBUG_REVIEWS_INVALID_DATA", data);
+          setReviews([]);
+          return;
+        }
 
         if (activeRestaurant === "all") {
           setReviews(data);
         } else {
           const filtered = data.filter((r: any) => {
-            if (!r.business_name) return false;
-            return r.business_name.trim().toLowerCase() === activeRestaurant.trim().toLowerCase();
+            const businessName = (
+              r?.business_name || ""
+            )
+              .trim()
+              .toLowerCase();
+
+            return (
+              businessName ===
+              activeRestaurant.trim().toLowerCase()
+            );
           });
+
+          console.log("DEBUG_FILTERED_REVIEWS", filtered);
+
           setReviews(filtered);
         }
       } catch (err) {
         console.error("Review sync error:", err);
+        setReviews([]);
       } finally {
         setLoading(false);
       }
     }
+
     loadReviews();
   }, [activeRestaurant]);
+
+  console.log("DEBUG_REVIEWS_STATE", reviews);
+  console.log("DEBUG_REVIEWS_STATE_LENGTH", reviews.length);
+
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
 
   const filteredReviews = reviews.filter((r) => {
     const matchesSearch =
@@ -79,6 +149,7 @@ export default function Reviews() {
         subtitle="Chronological feed of ingested unstructured comments passing through sentiment processing modules."
       />
 
+      {/* FILTER PANEL GRID */}
       <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
@@ -107,7 +178,19 @@ export default function Reviews() {
         </div>
       </div>
 
+      {/* REVIEWS LIST RENDERING */}
       <div className="space-y-4">
+        {filteredReviews.length === 0 ? (
+          <div className="glass-card p-12 text-center text-muted-foreground text-xs">
+            No matching unstructured text feedback found for current filters.
+          </div>
+        ) : (
+          Reemplaza TODO desde:
+
+filteredReviews.map((r, i) => (
+
+hasta el final del archivo por esto EXACTO:
+
         {loading ? (
           <div className="glass-card p-10 text-center text-sm text-muted-foreground">
             Loading live Yelp review stream...
@@ -131,6 +214,7 @@ export default function Reviews() {
                     <span className="text-sm font-semibold text-foreground">
                       {r.business_name || "Unknown Restaurant"}
                     </span>
+
                     <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
                       {r.city || "Unknown City"}
                     </span>
@@ -145,10 +229,11 @@ export default function Reviews() {
                             idx < Number(r.review_stars || 0)
                               ? "fill-warning text-warning"
                               : "text-muted-foreground/20"
-                          }`}
+                          }`}}
                         />
                       ))}
                     </div>
+
                     <span className="text-[11px] text-muted-foreground font-data">
                       {r.date || "No date"}
                     </span>
@@ -169,6 +254,7 @@ export default function Reviews() {
                   <MessageSquare className="h-3 w-3" />
                   <span>Processed Log</span>
                 </span>
+
                 <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
                   <ThumbsUp className="h-3 w-3" />
                   <span>Helpful index</span>

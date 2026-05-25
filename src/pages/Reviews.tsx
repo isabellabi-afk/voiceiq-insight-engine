@@ -117,21 +117,29 @@ export default function Reviews() {
 
   const safeReviews = Array.isArray(reviews) ? reviews : [];
 
-  const filteredReviews = safeReviews.filter((r) => {
-   const matchesSearch =
-    (r?.text || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()) ||
-    (r?.business_name || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+ const normalizedReviews = safeReviews.map((r, i) => ({
+  id: r?.review_id || r?.id || `review-${i}`,
+  business_name: r?.business_name || "Unknown Restaurant",
+  city: r?.city || r?.location || "Unknown City",
+  text: r?.text || r?.comment || "No review text available",
+  review_stars: Number(r?.review_stars || r?.rating || 0),
+  date: r?.date || "No date",
+  sentiment_binary: r?.sentiment_binary || "unknown",
+}));
 
-   const matchesRating =
+const filteredReviews = normalizedReviews.filter((r) => {
+  const search = searchTerm.toLowerCase();
+
+  const matchesSearch =
+    r.text.toLowerCase().includes(search) ||
+    r.business_name.toLowerCase().includes(search);
+
+  const matchesRating =
     ratingFilter === "all" ||
-    String(r?.review_stars || "") === ratingFilter;
+    String(r.review_stars) === ratingFilter;
 
-   return matchesSearch && matchesRating;
- });
+  return matchesSearch && matchesRating;
+});
 
   return (
     <DashboardLayout>
@@ -188,6 +196,17 @@ export default function Reviews() {
 
       {/* REVIEWS LIST RENDERING */}
       <div className="space-y-4">
+        {filteredReviews.length === 0 ? (
+          <div className="glass-card p-12 text-center text-muted-foreground text-xs">
+            No matching unstructured text feedback found for current filters.
+          </div>
+        ) : (
+          Reemplaza TODO desde:
+
+filteredReviews.map((r, i) => (
+
+hasta el final del archivo por esto EXACTO:
+
         {loading ? (
           <div className="glass-card p-10 text-center text-sm text-muted-foreground">
             Loading live Yelp review stream...
@@ -226,7 +245,7 @@ export default function Reviews() {
                             idx < Number(r.review_stars || 0)
                               ? "fill-warning text-warning"
                               : "text-muted-foreground/20"
-                          }`}
+                          }`}}
                         />
                       ))}
                     </div>

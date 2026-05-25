@@ -188,17 +188,6 @@ export default function Reviews() {
 
       {/* REVIEWS LIST RENDERING */}
       <div className="space-y-4">
-        {filteredReviews.length === 0 ? (
-          <div className="glass-card p-12 text-center text-muted-foreground text-xs">
-            No matching unstructured text feedback found for current filters.
-          </div>
-        ) : (
-          Reemplaza TODO desde:
-
-filteredReviews.map((r, i) => (
-
-hasta el final del archivo por esto EXACTO:
-
         {loading ? (
           <div className="glass-card p-10 text-center text-sm text-muted-foreground">
             Loading live Yelp review stream...

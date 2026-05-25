@@ -13,6 +13,8 @@ export default function Reviews() {
   // STATE
   // =========================================================
 
+  const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const [ratingFilter, setRatingFilter] = useState("all");
@@ -20,6 +22,28 @@ export default function Reviews() {
   const [reviews, setReviews] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
+
+  // =========================================================
+  // ACTIVE RESTAURANT SYNC
+  // =========================================================
+
+  useEffect(() => {
+    const syncRestaurant = () => {
+      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
+
+      console.log("DEBUG_ACTIVE_RESTAURANT", saved);
+
+      setActiveRestaurant(saved);
+    };
+
+    syncRestaurant();
+
+    window.addEventListener("storage", syncRestaurant);
+
+    return () => {
+      window.removeEventListener("storage", syncRestaurant);
+    };
+  }, []);
 
   // =========================================================
   // FETCH REVIEWS
@@ -75,10 +99,21 @@ export default function Reviews() {
   }, []);
 
   // =========================================================
-  // FILTERS
+  // RESTAURANT FILTER
   // =========================================================
 
-  const filteredReviews = (reviews || []).filter((r) => {
+  const restaurantFilteredReviews =
+    activeRestaurant === "all"
+      ? reviews
+      : reviews.filter((r) => {
+          return r.business_name.trim().toLowerCase() === activeRestaurant.trim().toLowerCase();
+        });
+
+  // =========================================================
+  // SEARCH + RATING FILTER
+  // =========================================================
+
+  const filteredReviews = restaurantFilteredReviews.filter((r) => {
     const matchesSearch =
       r.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.business_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -94,7 +129,15 @@ export default function Reviews() {
 
   return (
     <DashboardLayout>
-      <PageHeader eyebrow="Feedback" title="Customer Reviews Log" subtitle="Live synchronized review stream." />
+      <PageHeader
+        eyebrow="Feedback"
+        title="Customer Reviews Log"
+        subtitle={
+          activeRestaurant === "all"
+            ? "Global synchronized review stream."
+            : `Filtered review stream for ${activeRestaurant}.`
+        }
+      />
 
       <div className="p-6 space-y-6">
         {/* FILTERS */}
@@ -140,10 +183,8 @@ export default function Reviews() {
         {loading ? (
           <div className="glass-card p-10 text-center text-sm text-muted-foreground">Loading live review stream...</div>
         ) : filteredReviews.length === 0 ? (
-          /* EMPTY STATE */
           <div className="glass-card p-10 text-center text-sm text-muted-foreground">No reviews found.</div>
         ) : (
-          /* REVIEW LIST */
           <div className="space-y-4">
             {filteredReviews.map((r, i) => (
               <motion.div
@@ -165,8 +206,6 @@ export default function Reviews() {
                   {/* LEFT */}
 
                   <div>
-                    {/* HEADER */}
-
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
 

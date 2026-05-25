@@ -70,20 +70,25 @@ export default function Reviews() {
         const normalized = data.map((r: any, i: number) => ({
           id: r?.review_id || r?.id || `review-${i}`,
 
-          business_name: r?.business_name || "Unknown Restaurant",
+          business_name: String(r?.business_name || "Unknown Restaurant"),
 
-          city: r?.city || r?.location || "Unknown City",
+          city: String(r?.city || r?.location || "Unknown City"),
 
-          text: r?.text || r?.comment || "No review text available",
+          text: String(r?.text || r?.comment || "No review text available"),
 
           review_stars: Number(r?.review_stars || r?.rating || 0),
 
-          date: r?.date || "No date",
+          date: String(r?.date || "No date"),
 
-          sentiment_binary: r?.sentiment_binary || "unknown",
+          sentiment_binary: String(r?.sentiment_binary || "unknown"),
         }));
 
         console.log("DEBUG_NORMALIZED_REVIEWS", normalized);
+
+        console.log(
+          "DEBUG_AVAILABLE_RESTAURANTS",
+          normalized.map((r: any) => r.business_name),
+        );
 
         setReviews(normalized);
       } catch (err) {
@@ -99,17 +104,6 @@ export default function Reviews() {
   }, []);
 
   // =========================================================
-  // DEBUG
-  // =========================================================
-
-  console.log("DEBUG_ACTIVE_RESTAURANT", activeRestaurant);
-
-  console.log(
-    "DEBUG_AVAILABLE_RESTAURANTS",
-    reviews.map((r) => r.business_name),
-  );
-
-  // =========================================================
   // RESTAURANT FILTER
   // =========================================================
 
@@ -117,11 +111,23 @@ export default function Reviews() {
     activeRestaurant === "all"
       ? reviews
       : reviews.filter((r) => {
-          const business = r.business_name?.trim()?.toLowerCase() || "";
+          const business = String(r.business_name || "")
+            .trim()
+            .toLowerCase();
 
-          const active = activeRestaurant?.trim()?.toLowerCase() || "";
+          const active = String(activeRestaurant || "")
+            .trim()
+            .toLowerCase();
 
-          return business.includes(active) || active.includes(business);
+          const match = business.includes(active) || active.includes(business);
+
+          console.log("MATCH_TEST", {
+            business,
+            active,
+            match,
+          });
+
+          return match;
         });
 
   // =========================================================
@@ -137,6 +143,8 @@ export default function Reviews() {
 
     return matchesSearch && matchesRating;
   });
+
+  console.log("FINAL_FILTERED_REVIEWS", filteredReviews);
 
   // =========================================================
   // RENDER

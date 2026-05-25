@@ -143,7 +143,16 @@ export default function Reviews() {
   // =========================================================
 
   return (
-    <DashboardLayout>
+  <div style={{ padding: 40 }}>
+    <h1>REVIEWS PAGE WORKING</h1>
+
+    <p>Loading: {String(loading)}</p>
+
+    <p>Restaurant: {activeRestaurant}</p>
+
+    <p>Total Reviews: {filteredReviews.length}</p>
+  </div>
+);
       {/* HEADER STATUS BAR */}
 
       <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">

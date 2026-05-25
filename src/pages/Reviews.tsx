@@ -5,7 +5,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getReviewsByRestaurant } from "@/apiService";
 
-// Datos de contingencia por si la API aún no está conectada en red o devuelve vacío
+// Datos de contingencia por si la API responde vacío o está caída
 const fallbackReviews = [
   { id: "f1", business_name: "Bella Italia", city: "Madrid", text: "The pasta carbonara was absolutely divine — creamy, perfectly seasoned, and generous portions.", review_stars: 5, date: "Mar 12, 2026", sentiment_binary: "Positive" },
   { id: "f2", business_name: "Bella Italia", city: "Madrid", text: "The steak was overcooked despite ordering medium rare. For the price, I expected far more.", review_stars: 2, date: "Mar 8, 2026", sentiment_binary: "Negative" },
@@ -20,7 +20,7 @@ export function Reviews() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sincronizar restaurante activo
+  // Sincronizar restaurante activo globalmente
   useEffect(() => {
     const syncRestaurantSession = () => {
       const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -35,7 +35,7 @@ export function Reviews() {
     };
   }, []);
 
-  // Cargar reseñas de la API o usar contingencia
+  // Cargar opiniones reales o usar contingencia si falla
   useEffect(() => {
     async function loadReviews() {
       try {
@@ -45,7 +45,6 @@ export function Reviews() {
         if (data && Array.isArray(data) && data.length > 0) {
           setReviews(data);
         } else {
-          // Si la API responde vacío, cargamos el fallback para que la web nunca se quede rota
           setReviews(fallbackReviews);
         }
       } catch (err) {
@@ -58,7 +57,7 @@ export function Reviews() {
     loadReviews();
   }, [activeRestaurant]);
 
-  // Normalización de propiedades para blindar contra fallos
+  // Normalización de datos para mitigar variaciones de la API
   const normalizedReviews = reviews.map((r: any, i) => ({
     id: r?.review_id || r?.id || `review-${i}`,
     business_name: r?.business_name || r?.restaurant_name || "Unknown Restaurant",
@@ -73,13 +72,12 @@ export function Reviews() {
   const filteredReviews = normalizedReviews.filter((r) => {
     const search = searchTerm.toLowerCase();
 
-    // FILTRO SEGURO: Si es 'all' pasa. Si no, busca coincidencia parcial o admite todo si usamos fallback genérico
     const matchesRestaurant =
       activeRestaurant === "all" ||
       activeRestaurant === "" ||
       r.business_name.toLowerCase().includes(activeRestaurant.toLowerCase()) ||
       activeRestaurant.toLowerCase().includes(r.business_name.toLowerCase()) ||
-      reviews === fallbackReviews; // No bloquear el fallback en modo depuración
+      reviews === fallbackReviews;
 
     const matchesSearch = 
       r.text.toLowerCase().includes(search) || 
@@ -160,40 +158,67 @@ export function Reviews() {
             No reviews found matching the active criteria.
           </div>
         ) : (
-          filteredReviews.map((r, i) => (
-            <motion.div
-              key={`${r.id}-${i}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="glass-card p-5 hover:shadow-xs transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
-                    <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
-                      {r.city}
-                    </span>
+          filteredReviews.map((r, i) => {
+            // Evaluamos el sentimiento de forma segura antes del return
+            const isPositive = String(r.sentiment_binary).toLowerCase() === "positive";
+            const badgeClass = isPositive 
+              ? "bg-green-50 text-green-700 border-green-200" 
+              : "bg-red-50 text-red-700 border-red-200";
+
+            return (
+              <motion.div
+                key={`${r.id}-${i}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="glass-card p-5 hover:shadow-xs transition-all"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
+                        {r.city}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <Star
+                            key={idx}
+                            className={`h-3 w-3 ${
+                              idx < r.review_stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">{r.date}</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <Star
-                          key={idx}
-                          className={`h-3 w-3 ${
-                            idx < r.review_stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">{r.date}</span>
-                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${badgeClass}`}>
+                    {r.sentiment_binary}
+                  </span>
                 </div>
 
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                  r.sentiment_binary.toLowerCase() === "positive" 
-                    ? "bg-green-50 text-green-700 border-green-200" 
-                    : "bg-red-50 text-red-700 border-red-200"
-                }`}>
+                <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed italic">"{r.text}"</p>
+
+                <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>Processed Log</span>
+                  </span>
+                  <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                    <ThumbsUp className="h-3 w-3" />
+                    <span>Helpful index</span>
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}

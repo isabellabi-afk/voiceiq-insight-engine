@@ -68,7 +68,12 @@ export default function Reviews() {
         }
 
         const normalized = data.map((r: any, i: number) => ({
-          id: r?.review_id || r?.id || `review-${i}`,
+          // =================================================
+          // IMPORTANT:
+          // FORCE UNIQUE IDS
+          // =================================================
+
+          id: `review-${i}-${Date.now()}`,
 
           business_name: String(r?.business_name || "Unknown Restaurant"),
 
@@ -89,6 +94,8 @@ export default function Reviews() {
           "DEBUG_AVAILABLE_RESTAURANTS",
           normalized.map((r: any) => r.business_name),
         );
+
+        console.log("DEBUG_TOTAL_REVIEWS", normalized.length);
 
         setReviews(normalized);
       } catch (err) {
@@ -120,12 +127,6 @@ export default function Reviews() {
             .toLowerCase();
 
           const match = business.includes(active) || active.includes(business);
-
-          console.log("MATCH_TEST", {
-            business,
-            active,
-            match,
-          });
 
           return match;
         });
@@ -211,7 +212,7 @@ export default function Reviews() {
           <div className="space-y-4">
             {filteredReviews.map((r, i) => (
               <motion.div
-                key={r.id}
+                key={`${r.id}-${i}`}
                 initial={{
                   opacity: 0,
                   y: 10,

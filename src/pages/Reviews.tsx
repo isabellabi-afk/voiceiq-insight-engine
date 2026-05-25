@@ -6,7 +6,14 @@ export default function Reviews() {
   return (
     <div style={{ padding: 40 }}>
       <h1>Reviews Page Working</h1>
+
       <p>{count}</p>
+
+      <div>
+        <h2>Test Review Card</h2>
+
+        <p>This is a clean JSX reconstruction test.</p>
+      </div>
     </div>
   );
 }

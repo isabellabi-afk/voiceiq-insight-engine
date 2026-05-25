@@ -256,9 +256,7 @@ export default function Reviews() {
 
                   <div className="flex items-center gap-2">
                     <div className="flex gap-0.5">
-                      {Array.from({
-                        length: 5,
-                      }).map((_, idx) => (
+                      {Array.from({ length: 5 }).map((_, idx) => (
                         <Star
                           key={idx}
                           className={`h-3 w-3 ${

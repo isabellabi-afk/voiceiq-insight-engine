@@ -8,16 +8,22 @@ import { PageHeader } from "@/components/PageHeader";
 import { getReviewsByRestaurant } from "@/apiService";
 
 export default function Reviews() {
+  // =========================================================
+  // GLOBAL RESTAURANT STATE
+  // =========================================================
+
   const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
 
   const [searchTerm, setSearchTerm] = useState("");
+
   const [ratingFilter, setRatingFilter] = useState("all");
 
   const [reviews, setReviews] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   // =========================================================
-  // GLOBAL RESTAURANT SESSION SYNC
+  // SYNC GLOBAL RESTAURANT SESSION
   // =========================================================
 
   useEffect(() => {
@@ -97,18 +103,37 @@ export default function Reviews() {
   }));
 
   // =========================================================
-  // SEARCH + RATING FILTERS
+  // FILTER LAYER
   // =========================================================
 
   const filteredReviews = normalizedReviews.filter((r) => {
     const search = searchTerm.toLowerCase();
 
+    // =====================================================
+    // RESTAURANT FILTER
+    // =====================================================
+
+    const matchesRestaurant =
+      activeRestaurant === "all"
+        ? true
+        : r.business_name?.trim().toLowerCase() === activeRestaurant?.trim().toLowerCase();
+
+    // =====================================================
+    // SEARCH FILTER
+    // =====================================================
+
     const matchesSearch = r.text.toLowerCase().includes(search) || r.business_name.toLowerCase().includes(search);
+
+    // =====================================================
+    // RATING FILTER
+    // =====================================================
 
     const matchesRating = ratingFilter === "all" || String(r.review_stars) === ratingFilter;
 
-    return matchesSearch && matchesRating;
+    return matchesRestaurant && matchesSearch && matchesRating;
   });
+
+  console.log("FILTERED_REVIEWS", filteredReviews);
 
   // =========================================================
   // RENDER
@@ -116,7 +141,9 @@ export default function Reviews() {
 
   return (
     <DashboardLayout>
-      {/* TOP STATUS BAR */}
+      {/* =====================================================
+          TOP STATUS BAR
+      ====================================================== */}
 
       <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
         <div className="flex items-center gap-2.5">
@@ -136,7 +163,9 @@ export default function Reviews() {
         </div>
       </div>
 
-      {/* PAGE HEADER */}
+      {/* =====================================================
+          PAGE HEADER
+      ====================================================== */}
 
       <PageHeader
         eyebrow="Feedback"
@@ -144,7 +173,9 @@ export default function Reviews() {
         subtitle={`Filtered review stream for ${activeRestaurant === "all" ? "all restaurants" : activeRestaurant}.`}
       />
 
-      {/* FILTER BAR */}
+      {/* =====================================================
+          FILTER BAR
+      ====================================================== */}
 
       <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
@@ -184,7 +215,9 @@ export default function Reviews() {
         </div>
       </div>
 
-      {/* REVIEWS LIST */}
+      {/* =====================================================
+          REVIEWS LIST
+      ====================================================== */}
 
       <div className="space-y-4">
         {loading ? (
@@ -196,7 +229,7 @@ export default function Reviews() {
         ) : (
           filteredReviews.map((r, i) => (
             <motion.div
-              key={r.id}
+              key={`${r.id}-${i}`}
               initial={{
                 opacity: 0,
                 y: 10,

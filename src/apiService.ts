@@ -65,6 +65,14 @@ export const getReviews = async (filters: ReviewFilters = {}): Promise<Review[]>
   return data ?? [];
 };
 
+export const getReviewsByRestaurant = async (businessName: string): Promise<Review[]> => {
+  const params = new URLSearchParams();
+  if (businessName && businessName !== "all") params.set("business_name", businessName);
+  params.set("limit", "200");
+  const data = await safeFetch<Review[]>(`/reviews?${params.toString()}`);
+  return data ?? [];
+};
+
 // ── 3. Restaurants ──
 export const getMarketData = async (): Promise<any> => {
   return safeFetch<any>("/restaurants");

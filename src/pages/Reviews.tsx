@@ -226,7 +226,7 @@ export default function Reviews() {
                             idx < Number(r.review_stars || 0)
                               ? "fill-warning text-warning"
                               : "text-muted-foreground/20"
-                          }`}}
+                          }`}
                         />
                       ))}
                     </div>

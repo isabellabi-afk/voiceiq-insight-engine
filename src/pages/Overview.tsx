@@ -1,349 +1,277 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MessageSquare, Activity, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Search, Star, MessageSquare, Building2, ThumbsUp } from "lucide-react";
+
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { GlassTooltip } from "@/components/GlassTooltip";
-import { getOverviewData, getTopProblemDrivers, getRealRestaurantsList, getRestaurantKPIs } from "../apiService";
 
-const container = {
-  hidden: {},
-  show: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
+import { getReviewsByRestaurant } from "@/apiService";
 
-const item = {
-  hidden: {
-    opacity: 0,
-    y: 24,
-  },
+export default function Reviews() {
+  const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
 
-  show: {
-    opacity: 1,
-    y: 0,
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
 
-    transition: {
-      duration: 0.5,
-      ease: [0.22, 1, 0.36, 1],
-    },
-  },
-};
-
-function ProgressRing({ value }: { value: number }) {
-  const r = 28;
-
-  const c = 2 * Math.PI * r;
-
-  const offset = c - (value / 100) * c;
-
-  return (
-    <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
-      <circle cx="36" cy="36" r={r} stroke="rgba(31,41,55,0.08)" strokeWidth="6" fill="none" />
-
-      <circle
-        cx="36"
-        cy="36"
-        r={r}
-        stroke="hsl(var(--primary))"
-        strokeWidth="6"
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={offset}
-        transform="rotate(-90 36 36)"
-        style={{
-          transition: "stroke-dashoffset 1s ease-out",
-        }}
-      />
-
-      <text x="36" y="40" textAnchor="middle" className="font-data fill-foreground text-[13px] font-semibold">
-        {value}%
-      </text>
-    </svg>
-  );
-}
-
-export default function Overview() {
-  const [backendData, setBackendData] = useState<any>(null);
-
-  const [restaurantKPIs, setRestaurantKPIs] = useState<any>(null);
-
-  const [driversData, setDriversData] = useState<any[]>([]);
-
-  const [realRestaurants, setRealRestaurants] = useState<string[]>([]);
-
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // =======================================================
-  // GLOBAL RESTAURANT SESSION
-  // =======================================================
-
-  const [activeRestaurant, setActiveRestaurant] = useState<string>(() => {
-    return localStorage.getItem("selected_yelp_restaurant") || "all";
-  });
-
-  // =======================================================
-  // GLOBAL RESTAURANT HANDLER
-  // =======================================================
-
-  const handleRestaurantChange = (restaurantName: string) => {
-    console.log("RESTAURANT_CHANGED_TO", restaurantName);
-
-    setActiveRestaurant(restaurantName);
-
-    localStorage.setItem("selected_yelp_restaurant", restaurantName);
-
-    // Evento global REAL
-    window.dispatchEvent(
-      new CustomEvent("restaurantChanged", {
-        detail: restaurantName,
-      }),
-    );
-  };
-
-  // =======================================================
-  // INITIAL DATA LOAD
-  // =======================================================
+  // =========================================================
+  // GLOBAL RESTAURANT SESSION SYNC
+  // =========================================================
 
   useEffect(() => {
-    async function loadData() {
+    const syncRestaurantSession = () => {
+      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
+
+      console.log("SYNC_RESTAURANT_SESSION", saved);
+
+      setActiveRestaurant(saved);
+    };
+
+    syncRestaurantSession();
+
+    window.addEventListener("storage", syncRestaurantSession);
+
+    return () => {
+      window.removeEventListener("storage", syncRestaurantSession);
+    };
+  }, []);
+
+  // =========================================================
+  // LOAD REVIEWS
+  // =========================================================
+
+  useEffect(() => {
+    async function loadReviews() {
       try {
-        const overview = await getOverviewData();
+        setLoading(true);
 
-        if (overview) {
-          setBackendData(overview);
+        console.log("LOADING_REVIEWS_FOR", activeRestaurant);
+
+        const data = await getReviewsByRestaurant(activeRestaurant);
+
+        console.log("RAW_REVIEW_RESPONSE", data);
+
+        if (!Array.isArray(data)) {
+          console.error("REVIEWS_RESPONSE_NOT_ARRAY", data);
+
+          setReviews([]);
+
+          return;
         }
 
-        const restaurantNames = await getRealRestaurantsList();
+        setReviews(data);
 
-        setRealRestaurants(restaurantNames || []);
-
-        const drivers = await getTopProblemDrivers();
-
-        if (drivers) {
-          setDriversData(drivers);
-        }
+        console.log("FINAL_REVIEWS_COUNT", data.length);
       } catch (err) {
-        console.error("Error syncing with Railway:", err);
+        console.error("Review sync error:", err);
+
+        setReviews([]);
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
-  }, []);
-
-  // =======================================================
-  // RESTAURANT KPI LOAD
-  // =======================================================
-
-  useEffect(() => {
-    async function loadRestaurantKPIs() {
-      if (activeRestaurant === "all") {
-        setRestaurantKPIs(null);
-
-        return;
-      }
-
-      try {
-        const data = await getRestaurantKPIs(activeRestaurant);
-
-        console.log("ACTIVE RESTAURANT:", activeRestaurant);
-
-        console.log("RESTAURANT KPI RESPONSE:", data);
-
-        if (data) {
-          setRestaurantKPIs(data);
-        }
-      } catch (err) {
-        console.error("Restaurant KPI sync error:", err);
-      }
-    }
-
-    loadRestaurantKPIs();
+    loadReviews();
   }, [activeRestaurant]);
 
-  // =======================================================
-  // KPI LOGIC
-  // =======================================================
+  // =========================================================
+  // NORMALIZATION LAYER
+  // =========================================================
 
-  const activeKPIs = activeRestaurant !== "all" && restaurantKPIs ? restaurantKPIs : backendData;
+  const normalizedReviews = reviews.map((r: any, i) => ({
+    id: r?.review_id || r?.id || `review-${i}`,
 
-  const totalReviews = activeKPIs?.total_reviews || 0;
+    business_name: r?.business_name || r?.restaurant_name || "Unknown Restaurant",
 
-  const csatValue = activeKPIs?.avg_stars || activeKPIs?.csat || 0;
+    city: r?.city || r?.location || "Unknown City",
 
-  const positivePct = activeKPIs?.positive_pct || 75;
+    text: r?.text || r?.comment || "No review text available",
 
-  const npsValue = Math.round(positivePct - 20);
+    review_stars: Number(r?.review_stars || r?.stars || r?.rating || 0),
 
-  const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
+    date: r?.date || r?.review_date || "No date",
 
-  const responseRate = 100;
+    sentiment_binary: r?.sentiment_binary || r?.sentiment || "unknown",
+  }));
 
-  const negativePct = Math.round(100 - positivePct);
+  // =========================================================
+  // SEARCH + RATING FILTERS
+  // =========================================================
 
-  const currentSentimentData = [
-    {
-      name: "Positive Reviews",
-      value: positivePct,
-      color: "#6EE7B7",
-    },
+  const filteredReviews = normalizedReviews.filter((r) => {
+    const search = searchTerm.toLowerCase();
 
-    {
-      name: "Negative Reviews",
-      value: negativePct,
-      color: "#F9A8D4",
-    },
-  ];
+    const matchesSearch = r.text.toLowerCase().includes(search) || r.business_name.toLowerCase().includes(search);
 
-  // =======================================================
-  // LOADING
-  // =======================================================
+    const matchesRating = ratingFilter === "all" || String(r.review_stars) === ratingFilter;
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex h-96 items-center justify-center text-sm text-muted-foreground animate-pulse">
-          Querying Yelp SQLite tables and downloading live active brand entities...
-        </div>
-      </DashboardLayout>
-    );
-  }
+    return matchesSearch && matchesRating;
+  });
 
-  // =======================================================
+  // =========================================================
   // RENDER
-  // =======================================================
+  // =========================================================
 
   return (
     <DashboardLayout>
-      {/* TOP SECTION */}
+      {/* TOP STATUS BAR */}
 
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 border-b border-foreground/[0.04] pb-6">
-        <PageHeader
-          eyebrow="Overview"
-          title="Intelligence Dashboard"
-          subtitle="Real-time customer analytics extracted from your processed Yelp SQLite dataset."
-        />
-
-        {/* RESTAURANT SELECTOR */}
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/60 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-sm self-start xl:self-center">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-
-            <span>Active Yelp Client Account:</span>
+      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-primary/10 p-2 rounded-xl text-primary">
+            <Building2 className="h-4 w-4" />
           </div>
 
-          <select
-            value={activeRestaurant}
-            onChange={(e) => handleRestaurantChange(e.target.value)}
-            className="bg-white text-xs font-medium rounded-xl border border-foreground/[0.06] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer text-foreground shadow-sm w-full sm:w-auto max-w-[320px] min-w-[260px]"
-          >
-            <option value="all">🌐 Global Admin Network View (All Brands)</option>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Review Data Pipeline
+            </span>
 
-            {realRestaurants.map((name) => (
-              <option key={name} value={name}>
-                🏪 {name}
-              </option>
-            ))}
+            <h3 className="text-sm font-semibold text-foreground">
+              {activeRestaurant === "all" ? "Global Feedback Streams" : `Isolated Feed: ${activeRestaurant}`}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* PAGE HEADER */}
+
+      <PageHeader
+        eyebrow="Feedback"
+        title="Customer Reviews Log"
+        subtitle={`Filtered review stream for ${activeRestaurant === "all" ? "all restaurants" : activeRestaurant}.`}
+      />
+
+      {/* FILTER BAR */}
+
+      <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          {/* SEARCH */}
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
+
+            <input
+              type="text"
+              placeholder="Search reviews..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+            />
+          </div>
+
+          {/* RATING FILTER */}
+
+          <select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(e.target.value)}
+            className="rounded-lg border border-foreground/[0.08] bg-white/50 px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer"
+          >
+            <option value="all">All Ratings</option>
+
+            <option value="5">5 Stars</option>
+
+            <option value="4">4 Stars</option>
+
+            <option value="3">3 Stars</option>
+
+            <option value="2">2 Stars</option>
+
+            <option value="1">1 Star</option>
           </select>
         </div>
       </div>
 
-      {/* KPI GRID */}
+      {/* REVIEWS LIST */}
 
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        <motion.div variants={item} className="glass-card-hover p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Net Promoter Score (Est.)</p>
-
-              <p className="mt-2 font-data text-4xl font-bold text-positive glow-text-positive">{npsText}</p>
-
-              <p className="mt-1 text-xs text-muted-foreground">Sentiment-based metric</p>
-            </div>
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-positive/15">
-              <Activity className="h-4 w-4 text-positive" />
-            </div>
+      <div className="space-y-4">
+        {loading ? (
+          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
+            Loading live Yelp review stream...
           </div>
-        </motion.div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="glass-card p-10 text-center text-sm text-muted-foreground">No reviews found.</div>
+        ) : (
+          filteredReviews.map((r, i) => (
+            <motion.div
+              key={r.id}
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{
+                delay: i * 0.04,
+              }}
+              className="glass-card p-5 hover:shadow-xs transition-all"
+            >
+              {/* HEADER */}
 
-        <motion.div variants={item} className="glass-card-hover p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Average Rating</p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
 
-              <p className="mt-2 font-data text-4xl font-bold text-foreground">
-                {csatValue}
+                    <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
+                      {r.city}
+                    </span>
+                  </div>
 
-                <span className="text-2xl text-muted-foreground">/5</span>
-              </p>
+                  {/* STARS */}
 
-              <p className="mt-1 text-xs text-muted-foreground">Yelp data rating</p>
-            </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {Array.from({
+                        length: 5,
+                      }).map((_, idx) => (
+                        <Star
+                          key={idx}
+                          className={`h-3 w-3 ${
+                            idx < Number(r.review_stars) ? "fill-warning text-warning" : "text-muted-foreground/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
-              <Star className="h-4 w-4 text-warning" />
-            </div>
-          </div>
+                    <span className="text-[11px] text-muted-foreground font-data">{r.date}</span>
+                  </div>
+                </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  className={`h-3.5 w-3.5 ${
-                    s <= Math.round(csatValue) ? "fill-warning text-warning" : "text-muted-foreground/30"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </motion.div>
+                {/* SENTIMENT */}
 
-        <motion.div variants={item} className="glass-card-hover p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Reviews</p>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary capitalize">
+                  {r.sentiment_binary}
+                </span>
+              </div>
 
-              <p className="mt-2 font-data text-4xl font-bold text-warning glow-text-warning">
-                {totalReviews.toLocaleString()}
-              </p>
+              {/* REVIEW TEXT */}
 
-              <p className="mt-1 text-xs text-muted-foreground">Isolated business logs</p>
-            </div>
+              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">"{r.text}"</p>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
-              <MessageSquare className="h-4 w-4 text-warning" />
-            </div>
-          </div>
-        </motion.div>
+              {/* FOOTER */}
 
-        <motion.div variants={item} className="glass-card-hover p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Dataset Coverage</p>
+              <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
 
-              <p className="mt-2 font-data text-4xl font-bold text-foreground">{responseRate}%</p>
+                  <span>Processed Log</span>
+                </span>
 
-              <p className="mt-1 text-xs text-muted-foreground">API Sync Status</p>
-            </div>
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                  <ThumbsUp className="h-3 w-3" />
 
-            <ProgressRing value={responseRate} />
-          </div>
-        </motion.div>
-      </motion.div>
+                  <span>Helpful index</span>
+                </button>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
     </DashboardLayout>
   );
 }

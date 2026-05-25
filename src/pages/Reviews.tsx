@@ -197,7 +197,7 @@ hasta el final del archivo por esto EXACTO:
                             idx < Number(r.review_stars || 0)
                               ? "fill-warning text-warning"
                               : "text-muted-foreground/20"
-                          }`}
+                          }`}}
                         />
                       ))}
                     </div>
@@ -220,12 +220,12 @@ hasta el final del archivo por esto EXACTO:
               <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  Processed Log
+                  <span>Processed Log</span>
                 </span>
 
                 <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
                   <ThumbsUp className="h-3 w-3" />
-                  Helpful index
+                  <span>Helpful index</span>
                 </button>
               </div>
             </motion.div>

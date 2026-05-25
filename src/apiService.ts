@@ -20,7 +20,7 @@ export function Reviews() {
   const [loading, setLoading] = useState(true);
 
   // =========================================================
-  // SCONEXIÓN CON EL SELECTOR GLOBAL
+  // CONEXIÓN CON EL SELECTOR GLOBAL
   // =========================================================
   useEffect(() => {
     const syncRestaurantSession = () => {

@@ -1,324 +1,314 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, MessageSquare, Building2, ThumbsUp } from "lucide-react";
+import { Star, MessageSquare, Activity, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
+
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
+import { GlassTooltip } from "@/components/GlassTooltip";
 
-import { getReviewsByRestaurant } from "@/apiService";
+import { getOverviewData, getTopProblemDrivers, getRealRestaurantsList, getRestaurantKPIs } from "../apiService";
 
-export default function Reviews() {
-  // =========================================================
-  // GLOBAL RESTAURANT STATE
-  // =========================================================
+// =========================================================
+// ANIMATION CONFIG
+// =========================================================
 
-  const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
+const container = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
 
-  const [searchTerm, setSearchTerm] = useState("");
+const item = {
+  hidden: {
+    opacity: 0,
+    y: 24,
+  },
 
-  const [ratingFilter, setRatingFilter] = useState("all");
+  show: {
+    opacity: 1,
+    y: 0,
 
-  const [reviews, setReviews] = useState<any[]>([]);
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+// =========================================================
+// PROGRESS RING
+// =========================================================
+
+function ProgressRing({ value }: { value: number }) {
+  const r = 28;
+
+  const c = 2 * Math.PI * r;
+
+  const offset = c - (value / 100) * c;
+
+  return (
+    <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
+      <circle cx="36" cy="36" r={r} stroke="rgba(31,41,55,0.08)" strokeWidth="6" fill="none" />
+
+      <circle
+        cx="36"
+        cy="36"
+        r={r}
+        stroke="hsl(var(--primary))"
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        transform="rotate(-90 36 36)"
+        style={{
+          transition: "stroke-dashoffset 1s ease-out",
+        }}
+      />
+
+      <text x="36" y="40" textAnchor="middle" className="font-data fill-foreground text-[13px] font-semibold">
+        {value}%
+      </text>
+    </svg>
+  );
+}
+
+// =========================================================
+// OVERVIEW PAGE
+// =========================================================
+
+export default function Overview() {
+  // =======================================================
+  // STATE
+  // =======================================================
+
+  const [backendData, setBackendData] = useState<any>(null);
+
+  const [restaurantKPIs, setRestaurantKPIs] = useState<any>(null);
+
+  const [driversData, setDriversData] = useState<any[]>([]);
+
+  const [realRestaurants, setRealRestaurants] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
 
-  // =========================================================
-  // SYNC GLOBAL RESTAURANT SESSION
-  // =========================================================
+  // =======================================================
+  // GLOBAL RESTAURANT SESSION
+  // =======================================================
+
+  const [activeRestaurant, setActiveRestaurant] = useState<string>(() => {
+    return localStorage.getItem("selected_yelp_restaurant") || "all";
+  });
+
+  // =======================================================
+  // GLOBAL RESTAURANT HANDLER
+  // =======================================================
+
+  const handleRestaurantChange = (restaurantName: string) => {
+    console.log("RESTAURANT_CHANGED_TO", restaurantName);
+
+    setActiveRestaurant(restaurantName);
+
+    localStorage.setItem("selected_yelp_restaurant", restaurantName);
+
+    // =====================================================
+    // GLOBAL APP EVENT
+    // =====================================================
+
+    window.dispatchEvent(
+      new CustomEvent("restaurantChanged", {
+        detail: restaurantName,
+      }),
+    );
+  };
+
+  // =======================================================
+  // INITIAL DATA LOAD
+  // =======================================================
 
   useEffect(() => {
-    const syncRestaurantSession = () => {
-      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
-
-      console.log("SYNC_RESTAURANT_SESSION", saved);
-
-      setActiveRestaurant(saved);
-    };
-
-    syncRestaurantSession();
-
-    window.addEventListener("storage", syncRestaurantSession);
-
-    return () => {
-      window.removeEventListener("storage", syncRestaurantSession);
-    };
-  }, []);
-
-  // =========================================================
-  // LOAD REVIEWS
-  // =========================================================
-
-  useEffect(() => {
-    async function loadReviews() {
+    async function loadData() {
       try {
-        setLoading(true);
+        // ================================================
+        // OVERVIEW KPIS
+        // ================================================
 
-        console.log("LOADING_REVIEWS_FOR", activeRestaurant);
+        const overview = await getOverviewData();
 
-        const data = await getReviewsByRestaurant(activeRestaurant);
+        console.log("OVERVIEW_DATA", overview);
 
-        console.log("RAW_REVIEW_RESPONSE", data);
-
-        if (!Array.isArray(data)) {
-          console.error("REVIEWS_RESPONSE_NOT_ARRAY", data);
-
-          setReviews([]);
-
-          return;
+        if (overview) {
+          setBackendData(overview);
         }
 
-        setReviews(data);
+        // ================================================
+        // RESTAURANTS
+        // ================================================
 
-        console.log("FINAL_REVIEWS_COUNT", data.length);
+        const restaurantNames = await getRealRestaurantsList();
+
+        console.log("REAL_RESTAURANTS", restaurantNames);
+
+        setRealRestaurants(restaurantNames || []);
+
+        // ================================================
+        // DRIVERS
+        // ================================================
+
+        const drivers = await getTopProblemDrivers();
+
+        console.log("TOP_DRIVERS", drivers);
+
+        if (drivers) {
+          setDriversData(drivers);
+        }
       } catch (err) {
-        console.error("Review sync error:", err);
-
-        setReviews([]);
+        console.error("Error syncing with Railway:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadReviews();
+    loadData();
+  }, []);
+
+  // =======================================================
+  // RESTAURANT KPI LOAD
+  // =======================================================
+
+  useEffect(() => {
+    async function loadRestaurantKPIs() {
+      // ================================================
+      // GLOBAL VIEW
+      // ================================================
+
+      if (activeRestaurant === "all") {
+        setRestaurantKPIs(null);
+
+        return;
+      }
+
+      try {
+        console.log("LOADING_KPIS_FOR", activeRestaurant);
+
+        const data = await getRestaurantKPIs(activeRestaurant);
+
+        console.log("RESTAURANT_KPI_RESPONSE", data);
+
+        if (data) {
+          setRestaurantKPIs(data);
+        }
+      } catch (err) {
+        console.error("Restaurant KPI sync error:", err);
+      }
+    }
+
+    loadRestaurantKPIs();
   }, [activeRestaurant]);
 
-  // =========================================================
-  // NORMALIZATION LAYER
-  // =========================================================
+  // =======================================================
+  // ACTIVE KPI SOURCE
+  // =======================================================
 
-  const normalizedReviews = reviews.map((r: any, i) => ({
-    id: r?.review_id || r?.id || `review-${i}`,
+  const activeKPIs = activeRestaurant !== "all" && restaurantKPIs ? restaurantKPIs : backendData;
 
-    business_name: r?.business_name || r?.restaurant_name || "Unknown Restaurant",
+  // =======================================================
+  // KPI NORMALIZATION
+  // =======================================================
 
-    city: r?.city || r?.location || "Unknown City",
+  const totalReviews = activeKPIs?.total_reviews || 0;
 
-    text: r?.text || r?.comment || "No review text available",
+  const csatValue = activeKPIs?.avg_stars || activeKPIs?.csat || 0;
 
-    review_stars: Number(r?.review_stars || r?.stars || r?.rating || 0),
+  const positivePct = activeKPIs?.positive_pct || 75;
 
-    date: r?.date || r?.review_date || "No date",
+  const npsValue = Math.round(positivePct - 20);
 
-    sentiment_binary: r?.sentiment_binary || r?.sentiment || "unknown",
-  }));
+  const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
 
-  // =========================================================
-  // FILTER LAYER
-  // =========================================================
+  const responseRate = 100;
 
-  const filteredReviews = normalizedReviews.filter((r) => {
-    const search = searchTerm.toLowerCase();
+  const negativePct = Math.round(100 - positivePct);
 
-    // =====================================================
-    // RESTAURANT FILTER
-    // =====================================================
+  // =======================================================
+  // SENTIMENT DATA
+  // =======================================================
 
-    const matchesRestaurant =
-      activeRestaurant === "all"
-        ? true
-        : (() => {
-            const business = String(r.business_name || "")
-              .trim()
-              .toLowerCase();
+  const currentSentimentData = [
+    {
+      name: "Positive Reviews",
+      value: positivePct,
+      color: "#6EE7B7",
+    },
 
-            const active = String(activeRestaurant || "")
-              .trim()
-              .toLowerCase();
+    {
+      name: "Negative Reviews",
+      value: negativePct,
+      color: "#F9A8D4",
+    },
+  ];
 
-            console.log("RESTAURANT_MATCH_CHECK", {
-              business,
-              active,
-            });
+  // =======================================================
+  // LOADING STATE
+  // =======================================================
 
-            return business.includes(active) || active.includes(business);
-          })();
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex h-96 items-center justify-center text-sm text-muted-foreground animate-pulse">
+          Querying Yelp SQLite tables and downloading live active brand entities...
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-    // =====================================================
-    // SEARCH FILTER
-    // =====================================================
-
-    const matchesSearch = r.text.toLowerCase().includes(search) || r.business_name.toLowerCase().includes(search);
-
-    // =====================================================
-    // RATING FILTER
-    // =====================================================
-
-    const matchesRating = ratingFilter === "all" || String(r.review_stars) === ratingFilter;
-
-    return matchesRestaurant && matchesSearch && matchesRating;
-  });
-
-  console.log("FILTERED_REVIEWS", filteredReviews);
-
-  // =========================================================
+  // =======================================================
   // RENDER
-  // =========================================================
+  // =======================================================
 
   return (
     <DashboardLayout>
-      {/* =====================================================
-          TOP STATUS BAR
-      ====================================================== */}
+      {/* ===================================================
+          TOP SECTION
+      ==================================================== */}
 
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-primary/10 p-2 rounded-xl text-primary">
-            <Building2 className="h-4 w-4" />
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 border-b border-foreground/[0.04] pb-6">
+        {/* HEADER */}
+
+        <PageHeader
+          eyebrow="Overview"
+          title="Intelligence Dashboard"
+          subtitle="Real-time customer analytics extracted from your processed Yelp SQLite dataset."
+        />
+
+        {/* RESTAURANT SELECTOR */}
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/60 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-sm self-start xl:self-center">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+
+            <span>Active Yelp Client Account:</span>
           </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Review Data Pipeline
-            </span>
-
-            <h3 className="text-sm font-semibold text-foreground">
-              {activeRestaurant === "all" ? "Global Feedback Streams" : `Isolated Feed: ${activeRestaurant}`}
-            </h3>
-          </div>
-        </div>
-      </div>
-
-      {/* =====================================================
-          PAGE HEADER
-      ====================================================== */}
-
-      <PageHeader
-        eyebrow="Feedback"
-        title="Customer Reviews Log"
-        subtitle={`Filtered review stream for ${activeRestaurant === "all" ? "all restaurants" : activeRestaurant}.`}
-      />
-
-      {/* =====================================================
-          FILTER BAR
-      ====================================================== */}
-
-      <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          {/* SEARCH */}
-
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
-
-            <input
-              type="text"
-              placeholder="Search reviews..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-          </div>
-
-          {/* RATING FILTER */}
 
           <select
-            value={ratingFilter}
-            onChange={(e) => setRatingFilter(e.target.value)}
-            className="rounded-lg border border-foreground/[0.08] bg-white/50 px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer"
+            value={activeRestaurant}
+            onChange={(e) => handleRestaurantChange(e.target.value)}
+            className="bg-white text-xs font-medium rounded-xl border border-foreground/[0.06] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer text-foreground shadow-sm w-full sm:w-auto max-w-[320px] min-w-[260px]"
           >
-            <option value="all">All Ratings</option>
+            <option value="all">🌐 Global Admin Network View (All Brands)</option>
 
-            <option value="5">5 Stars</option>
-
-            <option value="4">4 Stars</option>
-
-            <option value="3">3 Stars</option>
-
-            <option value="2">2 Stars</option>
-
-            <option value="1">1 Star</option>
+            {realRestaurants.map((name) => (
+              <option key={name} value={name}>
+                🏪 {name}
+              </option>
+            ))}
           </select>
         </div>
-      </div>
-
-      {/* =====================================================
-          REVIEWS LIST
-      ====================================================== */}
-
-      <div className="space-y-4">
-        {loading ? (
-          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
-            Loading live Yelp review stream...
-          </div>
-        ) : filteredReviews.length === 0 ? (
-          <div className="glass-card p-10 text-center text-sm text-muted-foreground">No reviews found.</div>
-        ) : (
-          filteredReviews.map((r, i) => (
-            <motion.div
-              key={`${r.id}-${i}`}
-              initial={{
-                opacity: 0,
-                y: 10,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                delay: i * 0.04,
-              }}
-              className="glass-card p-5 hover:shadow-xs transition-all"
-            >
-              {/* HEADER */}
-
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
-
-                    <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
-                      {r.city}
-                    </span>
-                  </div>
-
-                  {/* STARS */}
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-0.5">
-                      {Array.from({
-                        length: 5,
-                      }).map((_, idx) => (
-                        <Star
-                          key={idx}
-                          className={`h-3 w-3 ${
-                            idx < Number(r.review_stars) ? "fill-warning text-warning" : "text-muted-foreground/20"
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <span className="text-[11px] text-muted-foreground font-data">{r.date}</span>
-                  </div>
-                </div>
-
-                {/* SENTIMENT */}
-
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary capitalize">
-                  {r.sentiment_binary}
-                </span>
-              </div>
-
-              {/* REVIEW TEXT */}
-
-              <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed">"{r.text}"</p>
-
-              {/* FOOTER */}
-
-              <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-
-                  <span>Processed Log</span>
-                </span>
-
-                <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
-                  <ThumbsUp className="h-3 w-3" />
-
-                  <span>Helpful index</span>
-                </button>
-              </div>
-            </motion.div>
-          ))
-        )}
       </div>
     </DashboardLayout>
   );

@@ -117,13 +117,21 @@ export default function Reviews() {
 
   const safeReviews = Array.isArray(reviews) ? reviews : [];
 
-  const filteredReviews = reviews.filter((r) => {
-    const matchesSearch =
-      r.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRating = ratingFilter === "all" || r.review_stars?.toString() === ratingFilter;
-    return matchesSearch && matchesRating;
-  });
+  const filteredReviews = safeReviews.filter((r) => {
+   const matchesSearch =
+    (r?.text || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase()) ||
+    (r?.business_name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+   const matchesRating =
+    ratingFilter === "all" ||
+    String(r?.review_stars || "") === ratingFilter;
+
+   return matchesSearch && matchesRating;
+ });
 
   return (
     <DashboardLayout>

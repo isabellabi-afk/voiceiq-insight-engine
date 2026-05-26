@@ -68,7 +68,7 @@ export const getReviews = async (filters: ReviewFilters = {}): Promise<Review[]>
 export const getReviewsByRestaurant = async (businessName: string): Promise<Review[]> => {
   const params = new URLSearchParams();
   if (businessName && businessName !== "all") params.set("business_name", businessName);
-  params.set("limit", "200");
+  params.set("limit", "10"); // Traemos un set manejable de opiniones reales
   const data = await safeFetch<Review[]>(`/reviews?${params.toString()}`);
   return data ?? [];
 };
@@ -88,12 +88,12 @@ export const getTopicData = async () => {
   return safeFetch<any>("/factors");
 };
 
+// CORRECCIÓN CLAVE: Pasamos business_name en lugar de city al módulo de NLP de Railway
 export const getTopProblemDrivers = async (restaurantName?: string): Promise<any> => {
   try {
-    // Si hay un restaurante seleccionado y no es "all", lo pasamos como query param
     const url = restaurantName && restaurantName !== "all" 
-      ? `https://web-production-12dfb.up.railway.app/intelligence/top-problem-drivers?city=${encodeURIComponent(restaurantName)}`
-      : `https://web-production-12dfb.up.railway.app/intelligence/top-problem-drivers`;
+      ? `${BASE_URL}/intelligence/top-problem-drivers?business_name=${encodeURIComponent(restaurantName)}`
+      : `${BASE_URL}/intelligence/top-problem-drivers`;
       
     const response = await fetch(url);
     if (!response.ok) throw new Error("Error en drivers API");
@@ -103,6 +103,7 @@ export const getTopProblemDrivers = async (restaurantName?: string): Promise<any
     return { top_problem_drivers: [] };
   }
 };
+
 // ── 5. Extraer nombres únicos de restaurantes reales para los filtros del SaaS ──
 export const getRealRestaurantsList = async (): Promise<string[]> => {
   const data = await getMarketData();
@@ -114,6 +115,9 @@ export const getRealRestaurantsList = async (): Promise<string[]> => {
 };
 
 export const getRestaurantKPIs = async (businessName: string) => {
+  if (!businessName || businessName === "all") {
+    return safeFetch<any>("/kpis");
+  }
   const qs = `?business_name=${encodeURIComponent(businessName)}`;
   return safeFetch<any>(`/restaurant-kpis${qs}`);
 };

@@ -1,26 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, MessageSquare, Building2, ThumbsUp } from "lucide-react";
+import { Search, Star, MessageSquare, Building2, ThumbsUp, Inbox, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getReviewsByRestaurant } from "@/apiService";
 
-// Datos de contingencia por si la API responde vacío o está caída
-const fallbackReviews = [
-  { id: "f1", business_name: "Bella Italia", city: "Madrid", text: "The pasta carbonara was absolutely divine — creamy, perfectly seasoned, and generous portions.", review_stars: 5, date: "Mar 12, 2026", sentiment_binary: "Positive" },
-  { id: "f2", business_name: "Bella Italia", city: "Madrid", text: "The steak was overcooked despite ordering medium rare. For the price, I expected far more.", review_stars: 2, date: "Mar 8, 2026", sentiment_binary: "Negative" },
-  { id: "f3", business_name: "Burger Joint", city: "Barcelona", text: "Amazing gourmet burgers with crispy fries. Friendly staff and fast service!", review_stars: 5, date: "Mar 14, 2026", sentiment_binary: "Positive" },
-  { id: "f4", business_name: "Burger Joint", city: "Barcelona", text: "Waited 20 minutes just to place a drink order. The staff seemed overwhelmed.", review_stars: 2, date: "Mar 10, 2026", sentiment_binary: "Negative" }
-];
-
-export  default function Reviews() {
+export default function Reviews() {
   const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sincronizar restaurante activo globalmente
+  // Sincronizar restaurante activo globalmente mediante eventos del sistema
   useEffect(() => {
     const syncRestaurantSession = () => {
       const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -35,21 +27,21 @@ export  default function Reviews() {
     };
   }, []);
 
-  // Cargar opiniones reales o usar contingencia si falla
+  // Cargar opiniones reales directamente desde el pipeline de Railway
   useEffect(() => {
     async function loadReviews() {
       try {
         setLoading(true);
         const data = await getReviewsByRestaurant(activeRestaurant);
         
-        if (data && Array.isArray(data) && data.length > 0) {
+        if (data && Array.isArray(data)) {
           setReviews(data);
         } else {
-          setReviews(fallbackReviews);
+          setReviews([]);
         }
       } catch (err) {
-        console.error("Review sync error, loading fallback:", err);
-        setReviews(fallbackReviews);
+        console.error("Critical error syncing review pipeline with SQLite:", err);
+        setReviews([]);
       } finally {
         setLoading(false);
       }
@@ -57,38 +49,42 @@ export  default function Reviews() {
     loadReviews();
   }, [activeRestaurant]);
 
-  // Normalización de datos para mitigar variaciones de la API
-  const normalizedReviews = reviews.map((r: any, i) => ({
-    id: r?.review_id || r?.id || `review-${i}`,
-    business_name: r?.business_name || r?.restaurant_name || "Unknown Restaurant",
-    city: r?.city || r?.location || "Unknown City",
-    text: r?.text || r?.comment || "No review text available",
-    review_stars: Number(r?.review_stars || r?.stars || r?.rating || 0),
-    date: r?.date || r?.review_date || "No date",
-    sentiment_binary: r?.sentiment_binary || r?.sentiment || "unknown",
-  }));
+  // Normalización estricta de datos para blindar el renderizado ante variaciones del esquema SQL
+  const normalizedReviews = useMemo(() => {
+    return reviews.map((r: any, i) => ({
+      id: r?.review_id || r?.id || `review-${i}`,
+      business_name: r?.business_name || r?.restaurant_name || "Active Brand Entity",
+      city: r?.city || r?.location || "N/A",
+      text: r?.text || r?.comment || "No text log provided for this record.",
+      review_stars: r?.review_stars !== undefined ? Number(r.review_stars) : r?.stars !== undefined ? Number(r.stars) : 0,
+      date: r?.date || r?.review_date || "Recent Date",
+      sentiment_binary: r?.sentiment_binary || r?.sentiment || "Neutral",
+    }));
+  }, [reviews]);
 
-  // Filtrado Seguro
-  const filteredReviews = normalizedReviews.filter((r) => {
-    const search = searchTerm.toLowerCase();
+  // Filtrado Determinista sobre datos reales
+  const filteredReviews = useMemo(() => {
+    return normalizedReviews.filter((r) => {
+      const search = searchTerm.toLowerCase();
 
-    const matchesRestaurant =
-      activeRestaurant === "all" ||
-      activeRestaurant === "" ||
-      r.business_name.toLowerCase().includes(activeRestaurant.toLowerCase()) ||
-      activeRestaurant.toLowerCase().includes(r.business_name.toLowerCase()) ||
-      reviews === fallbackReviews;
+      // Validación estricta del entorno aislado por cuenta/restaurante
+      const matchesRestaurant =
+        activeRestaurant === "all" ||
+        activeRestaurant === "" ||
+        r.business_name.toLowerCase().includes(activeRestaurant.toLowerCase()) ||
+        activeRestaurant.toLowerCase().includes(r.business_name.toLowerCase());
 
-    const matchesSearch = 
-      r.text.toLowerCase().includes(search) || 
-      r.business_name.toLowerCase().includes(search);
+      const matchesSearch = 
+        r.text.toLowerCase().includes(search) || 
+        r.business_name.toLowerCase().includes(search);
 
-    const matchesRating = 
-      ratingFilter === "all" || 
-      String(r.review_stars) === ratingFilter;
+      const matchesRating = 
+        ratingFilter === "all" || 
+        String(Math.round(r.review_stars)) === ratingFilter;
 
-    return matchesRestaurant && matchesSearch && matchesRating;
-  });
+      return matchesRestaurant && matchesSearch && matchesRating;
+    });
+  }, [normalizedReviews, activeRestaurant, searchTerm, ratingFilter]);
 
   return (
     <DashboardLayout>
@@ -124,10 +120,10 @@ export  default function Reviews() {
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search reviews..."
+              placeholder="Search dataset logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20"
             />
           </div>
 
@@ -150,35 +146,45 @@ export  default function Reviews() {
       {/* REVIEWS LIST */}
       <div className="space-y-4">
         {loading ? (
-          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
-            Loading live Yelp review stream...
+          <div className="glass-card p-12 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span>Streaming relational tuples from SQLite engine...</span>
           </div>
         ) : filteredReviews.length === 0 ? (
-          <div className="glass-card p-10 text-center text-sm text-muted-foreground">
-            No reviews found matching the active criteria.
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10"
+          >
+            <div className="h-10 w-10 bg-foreground/[0.03] rounded-xl flex items-center justify-center text-muted-foreground mb-3">
+              <Inbox className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">No matching review structures</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+              The query returned 0 live results inside SQLite for the selected filter matrices.
+            </p>
+          </motion.div>
         ) : (
           filteredReviews.map((r, i) => {
-            // Evaluamos el sentimiento de forma segura antes del return
             const isPositive = String(r.sentiment_binary).toLowerCase() === "positive";
             const badgeClass = isPositive 
-              ? "bg-green-50 text-green-700 border-green-200" 
-              : "bg-red-50 text-red-700 border-red-200";
+              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+              : "bg-rose-500/10 text-rose-600 border-rose-500/20";
 
             return (
               <motion.div
                 key={`${r.id}-${i}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="glass-card p-5 hover:shadow-xs transition-all"
+                transition={{ delay: i * 0.03 }}
+                className="glass-card p-5 hover:shadow-xs transition-all relative overflow-hidden"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-sm font-semibold text-foreground">{r.business_name}</span>
-                      <span className="text-[10px] text-muted-foreground font-medium bg-foreground/[0.04] px-2 py-0.5 rounded-md">
-                        {r.city}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-foreground tracking-tight">{r.business_name}</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold bg-foreground/[0.04] px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                        📍 {r.city}
                       </span>
                     </div>
 
@@ -188,31 +194,33 @@ export  default function Reviews() {
                           <Star
                             key={idx}
                             className={`h-3 w-3 ${
-                              idx < r.review_stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"
+                              idx < Math.round(r.review_stars) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-[11px] text-muted-foreground">{r.date}</span>
+                      <span className="text-[11px] text-muted-foreground font-mono">{r.date}</span>
                     </div>
                   </div>
 
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${badgeClass}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${badgeClass}`}>
                     {r.sentiment_binary}
                   </span>
                 </div>
 
-                <p className="mt-3.5 text-xs text-foreground/85 leading-relaxed italic">"{r.text}"</p>
+                <p className="mt-3.5 text-xs text-foreground/80 leading-relaxed font-medium">
+                  {r.text.startsWith('"') ? r.text : `"${r.text}"`}
+                </p>
 
-                <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.02] pt-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    <span>Processed Log</span>
+                <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.03] pt-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1 font-medium">
+                    <MessageSquare className="h-3 w-3 text-primary" />
+                    <span>Processed NLP Tuple</span>
                   </span>
-                  <button className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
-                    <ThumbsUp className="h-3 w-3" />
-                    <span>Helpful index</span>
-                  </button>
+                  <div className="flex items-center gap-1 font-mono text-[10px]">
+                    <span>Score Index:</span>
+                    <span className="font-bold text-foreground">{r.review_stars.toFixed(1)}</span>
+                  </div>
                 </div>
               </motion.div>
             );

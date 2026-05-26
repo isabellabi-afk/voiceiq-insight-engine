@@ -13,7 +13,7 @@ const fallbackReviews = [
   { id: "f4", business_name: "Burger Joint", city: "Barcelona", text: "Waited 20 minutes just to place a drink order. The staff seemed overwhelmed.", review_stars: 2, date: "Mar 10, 2026", sentiment_binary: "Negative" }
 ];
 
-export function Reviews() {
+export  default function Reviews() {
   const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");

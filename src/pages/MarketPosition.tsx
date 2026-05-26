@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Building2,
-  Loader2,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,12 +24,11 @@ type Quadrant = {
   items: { name: string; meta: string; recommendation: string; impact?: string }[];
 };
 
-// Mapeo refinado de bordes y chips de color alineados con Tailwind CSS
-const toneStyles: Record<Quadrant["tone"], { border: string; chip: string; icon: string; bg: string }> = {
-  positive: { border: "border-emerald-500/20", chip: "bg-emerald-500/10 text-emerald-600", icon: "text-emerald-500", bg: "bg-emerald-500/[0.01]" },
-  warning: { border: "border-amber-500/20", chip: "bg-amber-500/10 text-amber-600", icon: "text-amber-500", bg: "bg-amber-500/[0.01]" },
-  negative: { border: "border-rose-500/20", chip: "bg-rose-500/10 text-rose-600", icon: "text-rose-500", bg: "bg-rose-500/[0.01]" },
-  muted: { border: "border-foreground/10", chip: "bg-foreground/10 text-muted-foreground", icon: "text-muted-foreground", bg: "bg-foreground/[0.01]" },
+const toneStyles: Record<Quadrant["tone"], { border: string; chip: string; icon: string; bar: string }> = {
+  positive: { border: "border-positive/30", chip: "bg-positive/15 text-positive", icon: "text-positive", bar: "gradient-positive" },
+  warning: { border: "border-warning/30", chip: "bg-warning/15 text-warning", icon: "text-warning", bar: "gradient-warning" },
+  negative: { border: "border-negative/30", chip: "bg-negative/15 text-negative", icon: "text-negative", bar: "gradient-negative" },
+  muted: { border: "border-white/10", chip: "bg-white/10 text-muted-foreground", icon: "text-muted-foreground", bar: "bg-muted" },
 };
 
 export default function MarketPosition() {
@@ -42,7 +40,7 @@ export default function MarketPosition() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Escuchar activamente los cambios de estado global de la sesión
+  // 1. Escuchar activamente los cambios de estado global
   useEffect(() => {
     const checkBrand = () => {
       const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -56,7 +54,7 @@ export default function MarketPosition() {
     };
   }, []);
 
-  // 2. Consulta y consumo real de endpoints SQLite en Railway
+  // 2. Consulta y consumo real de endpoints SQLite
   useEffect(() => {
     async function loadMarketPositionMetrics() {
       setLoading(true);
@@ -105,38 +103,38 @@ export default function MarketPosition() {
       title: "Market Standing",
       icon: Trophy,
       rows: [
-        { label: isGlobal ? "Average System Rating" : "Your Location Rating", value: `${ratingValue} ★`, isHighlight: true },
-        { label: "Dataset Network Baseline", value: "3.9 ★", isHighlight: false },
-        { label: "Performance Status", value: Number(ratingValue) >= 4.0 ? "Outperforming" : "Awaiting Optimization", isHighlight: true, isStatus: true },
+        { label: isGlobal ? "Average System Rating" : "Your Location Rating", value: `${ratingValue} ★`, tone: "positive" },
+        { label: "Dataset Network Baseline", value: "3.9 ★" },
+        { label: "Performance Status", value: Number(ratingValue) >= 4.0 ? "Outperforming" : "Awaiting Optimization", tone: "positive" },
       ],
     },
     {
       title: "Share of Voice",
       icon: Megaphone,
       rows: [
-        { label: isGlobal ? "Total Network Volume" : "Your Unit Volume", value: totalReviews.toLocaleString(), isHighlight: false },
-        { label: "Total Database Ingested", value: globalTotalReviews.toLocaleString(), isHighlight: false },
-        { label: "Market Volume Share", value: shareOfVoice, isHighlight: true },
+        { label: isGlobal ? "Total Network Volume" : "Your Unit Volume", value: totalReviews.toLocaleString() },
+        { label: "Total Database Ingested", value: globalTotalReviews.toLocaleString() },
+        { label: "Market Volume Share", value: shareOfVoice, tone: "positive" },
       ],
     },
     {
       title: "Calculated Sentiment",
       icon: TrendingUp,
       rows: [
-        { label: isGlobal ? "Network Core NPS" : "Your Location NPS", value: totalReviews > 0 ? `${calculatedNps >= 0 ? "+" : ""}${calculatedNps}` : "N/A", isHighlight: true },
-        { label: "Network Average Baseline", value: "+35", isHighlight: false },
-        { label: "Target Safe Threshold", value: "+40", isHighlight: false },
+        { label: isGlobal ? "Network Core NPS" : "Your Location NPS", value: totalReviews > 0 ? `${calculatedNps >= 0 ? "+" : ""}${calculatedNps}` : "N/A", tone: "positive" },
+        { label: "Network Average Baseline", value: "+35" },
+        { label: "Target Safe Threshold", value: "+40" },
       ],
     },
   ];
 
-  // --- ARQUITECTURA DE MATRIZ 2x2 CORREGIDA Y COMPLETADA ---
+  // --- ARQUITECTURA DE MATRIZ 2x2 BASADA EN DRIVERS REALES (CIERRES REPARADOS) ---
   const matrix: Quadrant[] = useMemo(() => {
-    // Mapear los drivers de quejas reales extraídos de SQLite
-    const criticalIssues = drivers.slice(0, 2).map((d: any) => ({
-      name: `Risk: ${d.factor.charAt(0).toUpperCase() + d.factor.slice(1)} Volatility`,
-      meta: `${d.negative_reviews || d.count || 0} explicit critical records found`,
-      recommendation: `Deploy immediate quality audits to protect local sentiment layers.`
+    // Clasificamos las quejas de NLP reales extraídas de SQLite
+    const criticalIssues = drivers.map(d => ({
+      name: `Risk detected: ${d.factor.charAt(0).toUpperCase() + d.factor.slice(1)}`,
+      meta: `${d.negative_reviews || d.count || 0} explicit negative logs found in SQLite`,
+      recommendation: `Deploy corrective audits to protect local sentiment and stop NPS leakage.`
     }));
 
     return [
@@ -147,8 +145,8 @@ export default function MarketPosition() {
         tone: "positive",
         items: [
           { 
-            name: "Core Sentiment Retention", 
-            meta: `${positivePct}% of profiles logged positive metrics`, 
+            name: "Core Positive Sentiment Retention", 
+            meta: `${positivePct}% of customers left positive logs`, 
             recommendation: "Maintain standards and showcase highlights on marketing assets." 
           }
         ],
@@ -168,48 +166,37 @@ export default function MarketPosition() {
       },
       {
         title: "Critical Risks",
-        subtitle: "High impact customer friction points",
+        subtitle: "Areas requiring urgent operation interventions",
         icon: AlertOctagon,
         tone: "negative",
         items: criticalIssues.length > 0 ? criticalIssues : [
           {
-            name: "Negative Node Ingestion",
-            meta: `${negativePct}% critical volume ratio`,
-            recommendation: "Review text stream patterns in Topic Explorer immediately."
+            name: "Friction Point Analysis",
+            meta: `Analyzing critical volume ratios`,
+            recommendation: "Monitor text stream patterns in Topic Explorer."
           }
         ],
       },
       {
         title: "Strategic Trajectory",
-        subtitle: "Long-term positioning updates",
+        subtitle: "Long-term brand positioning markers",
         icon: Eye,
         tone: "muted",
         items: [
           {
-            name: "Share of Voice Maintenance",
-            meta: `Sustaining a ${shareOfVoice} regional market slice`,
-            recommendation: "Track competitors' customer ingestion trends."
+            name: "Market Voice Share",
+            meta: `Sustaining a ${shareOfVoice} regional presence`,
+            recommendation: "Evaluate competitor volume trends monthly."
           }
         ],
       }
     ];
-  }, [drivers, positivePct, negativePct, ratingValue, shareOfVoice]);
+  }, [drivers, positivePct, ratingValue, shareOfVoice]);
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex h-96 flex-col items-center justify-center text-sm text-muted-foreground gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span>Assembling multi-dimensional market matrix from SQL ledger...</span>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
+  // --- RETORNO DEL COMPONENTE JSX DE TU DISEÑO ORIGINAL ---
   return (
     <DashboardLayout>
-      {/* HEADER DE ESTADO DE LA ENTIDAD */}
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
+      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           <div className="bg-primary/10 p-2 rounded-xl text-primary">
             <Building2 className="h-4 w-4" />
@@ -219,7 +206,7 @@ export default function MarketPosition() {
               Market Intelligence Matrix
             </span>
             <h3 className="text-sm font-semibold text-foreground">
-              {isGlobal ? "Macro Entity Mapping" : `Isolated Brand View: ${displayName}`}
+              {isGlobal ? "Macro Entity Mapping" : `Market Position: ${displayName}`}
             </h3>
           </div>
         </div>
@@ -227,34 +214,25 @@ export default function MarketPosition() {
 
       <PageHeader
         eyebrow="Positioning"
-        title="Market Competitive Matrix"
-        subtitle="Compare your brand value, sentiment velocity, and structural operational markers against network benchmarks."
+        title="Market Competitive Position"
+        subtitle="Compare your brand value and operational markers against peer entities across regional datasets."
       />
 
-      {/* SECCIÓN 1: TARJETAS ANALÍTICAS KPI */}
+      {/* Grid Superior de KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         {compCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <div key={`comp-card-${i}`} className="glass-card p-5">
+            <div key={i} className="glass-card p-5">
               <div className="flex items-center gap-2 mb-4 text-muted-foreground">
-                <div className="bg-foreground/[0.03] p-1.5 rounded-lg">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
+                <Icon className="h-4 w-4 text-primary" />
                 <h4 className="text-xs font-bold text-foreground tracking-tight">{card.title}</h4>
               </div>
-
               <div className="space-y-3">
                 {card.rows.map((row, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs pb-2 border-b border-foreground/[0.02] last:border-0 last:pb-0">
-                    <span className="text-muted-foreground font-medium">{row.label}</span>
-                    <span className={`font-mono font-bold ${
-                      row.isHighlight 
-                        ? row.isStatus && row.value.includes("Awaiting") ? "text-amber-600" : "text-emerald-600"
-                        : "text-foreground"
-                    }`}>
-                      {row.value}
-                    </span>
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="font-mono font-bold text-foreground">{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -263,15 +241,13 @@ export default function MarketPosition() {
         })}
       </div>
 
-      {/* SECCIÓN 2: MATRIZ DE POSICIONAMIENTO DE MERCADO 2x2 */}
-      <h3 className="text-sm font-bold text-foreground mb-3.5 tracking-tight">Quad-Quadrant Business Intelligence Map</h3>
+      {/* Matriz 2x2 */}
       <div className="grid gap-4 md:grid-cols-2">
         {matrix.map((quadrant, i) => {
           const Icon = quadrant.icon;
           const styles = toneStyles[quadrant.tone];
-
           return (
-            <div key={`quad-${i}`} className={`glass-card p-5 border ${styles.border} ${styles.bg} flex flex-col justify-between gap-4`}>
+            <div key={i} className={`glass-card p-5 border ${styles.border} flex flex-col justify-between gap-4`}>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -282,20 +258,18 @@ export default function MarketPosition() {
                     {quadrant.tone}
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground font-medium mb-4">{quadrant.subtitle}</p>
-
-                <div className="space-y-3.5">
+                <p className="text-[11px] text-muted-foreground mb-4">{quadrant.subtitle}</p>
+                <div className="space-y-3">
                   {quadrant.items.map((item, idx) => (
                     <div key={idx} className="bg-white/60 p-3 rounded-xl border border-foreground/[0.02] space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground tracking-tight">{item.name}</span>
                         <ArrowUpRight className="h-3 w-3 text-muted-foreground/50" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">{item.meta}</p>
-                      
-                      <div className="flex items-start gap-1.5 bg-foreground/[0.02] p-2 rounded-lg mt-1 border border-foreground/[0.01]">
+                      <p className="text-[11px] text-muted-foreground">{item.meta}</p>
+                      <div className="flex items-start gap-1.5 bg-foreground/[0.02] p-2 rounded-lg mt-1">
                         <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                        <p className="text-[10px] text-foreground/80 font-medium leading-normal">
+                        <p className="text-[10px] text-foreground/80">
                           <span className="font-bold text-foreground">Action:</span> {item.recommendation}
                         </p>
                       </div>

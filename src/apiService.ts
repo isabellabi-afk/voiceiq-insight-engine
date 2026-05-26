@@ -88,26 +88,21 @@ export const getTopicData = async () => {
   return safeFetch<any>("/factors");
 };
 
-export const getTopProblemDrivers = async (city?: string) => {
-  const qs = city ? `?city=${encodeURIComponent(city)}` : "";
-  const data = await safeFetch<any>(`/intelligence/top-problem-drivers${qs}`);
-
-  if (!data) return [];
-
-  return data.top_problem_drivers.map((d: any) => ({
-    name:
-      d.factor === "servicio"
-        ? "Service"
-        : d.factor === "comida"
-          ? "Food Quality"
-          : d.factor === "ambiente"
-            ? "Atmosphere"
-            : "Other",
-    value: d.negative_reviews,
-    tone: d.factor === "servicio" ? "warning" : "positive",
-  }));
+export const getTopProblemDrivers = async (restaurantName?: string): Promise<any> => {
+  try {
+    // Si hay un restaurante seleccionado y no es "all", lo pasamos como query param
+    const url = restaurantName && restaurantName !== "all" 
+      ? `https://web-production-12dfb.up.railway.app/intelligence/top-problem-drivers?city=${encodeURIComponent(restaurantName)}`
+      : `https://web-production-12dfb.up.railway.app/intelligence/top-problem-drivers`;
+      
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Error en drivers API");
+    return await response.json();
+  } catch (error) {
+    console.error("Error cargando problem drivers:", error);
+    return { top_problem_drivers: [] };
+  }
 };
-
 // ── 5. Extraer nombres únicos de restaurantes reales para los filtros del SaaS ──
 export const getRealRestaurantsList = async (): Promise<string[]> => {
   const data = await getMarketData();

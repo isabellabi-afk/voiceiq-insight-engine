@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, MessageSquare, Building2, ThumbsUp, Inbox, Loader2 } from "lucide-react";
+import { Search, Star, MessageSquare, Building2, Inbox, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getReviewsByRestaurant } from "@/apiService";
@@ -12,7 +12,6 @@ export default function Reviews() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sincronizar restaurante activo globalmente mediante eventos del sistema
   useEffect(() => {
     const syncRestaurantSession = () => {
       const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -27,13 +26,11 @@ export default function Reviews() {
     };
   }, []);
 
-  // Cargar opiniones reales directamente desde el pipeline de Railway
   useEffect(() => {
     async function loadReviews() {
       try {
         setLoading(true);
         const data = await getReviewsByRestaurant(activeRestaurant);
-        
         if (data && Array.isArray(data)) {
           setReviews(data);
         } else {
@@ -49,7 +46,6 @@ export default function Reviews() {
     loadReviews();
   }, [activeRestaurant]);
 
-  // Normalización estricta de datos para blindar el renderizado ante variaciones del esquema SQL
   const normalizedReviews = useMemo(() => {
     return reviews.map((r: any, i) => ({
       id: r?.review_id || r?.id || `review-${i}`,
@@ -62,12 +58,10 @@ export default function Reviews() {
     }));
   }, [reviews]);
 
-  // Filtrado Determinista sobre datos reales
   const filteredReviews = useMemo(() => {
     return normalizedReviews.filter((r) => {
       const search = searchTerm.toLowerCase();
 
-      // Validación estricta del entorno aislado por cuenta/restaurante
       const matchesRestaurant =
         activeRestaurant === "all" ||
         activeRestaurant === "" ||
@@ -88,8 +82,7 @@ export default function Reviews() {
 
   return (
     <DashboardLayout>
-      {/* STATUS BAR */}
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
+      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           <div className="bg-primary/10 p-2 rounded-xl text-primary">
             <Building2 className="h-4 w-4" />
@@ -105,17 +98,14 @@ export default function Reviews() {
         </div>
       </div>
 
-      {/* HEADER */}
       <PageHeader
         eyebrow="Feedback"
         title="Customer Reviews Log"
         subtitle={`Filtered review stream for ${activeRestaurant === "all" ? "all restaurants" : activeRestaurant}.`}
       />
 
-      {/* FILTER BAR */}
       <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          {/* SEARCH */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
             <input
@@ -123,11 +113,10 @@ export default function Reviews() {
               placeholder="Search dataset logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
 
-          {/* RATING */}
           <select
             value={ratingFilter}
             onChange={(e) => setRatingFilter(e.target.value)}
@@ -143,7 +132,6 @@ export default function Reviews() {
         </div>
       </div>
 
-      {/* REVIEWS LIST */}
       <div className="space-y-4">
         {loading ? (
           <div className="glass-card p-12 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -151,19 +139,10 @@ export default function Reviews() {
             <span>Streaming relational tuples from SQLite engine...</span>
           </div>
         ) : filteredReviews.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10"
-          >
-            <div className="h-10 w-10 bg-foreground/[0.03] rounded-xl flex items-center justify-center text-muted-foreground mb-3">
-              <Inbox className="h-5 w-5" />
-            </div>
+          <div className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10">
+            <Inbox className="h-6 w-6 text-muted-foreground/40 mb-2" />
             <p className="text-sm font-semibold text-foreground">No matching review structures</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
-              The query returned 0 live results inside SQLite for the selected filter matrices.
-            </p>
-          </motion.div>
+          </div>
         ) : (
           filteredReviews.map((r, i) => {
             const isPositive = String(r.sentiment_binary).toLowerCase() === "positive";
@@ -177,7 +156,7 @@ export default function Reviews() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="glass-card p-5 hover:shadow-xs transition-all relative overflow-hidden"
+                className="glass-card p-5 hover:shadow-xs transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
@@ -193,9 +172,7 @@ export default function Reviews() {
                         {Array.from({ length: 5 }).map((_, idx) => (
                           <Star
                             key={idx}
-                            className={`h-3 w-3 ${
-                              idx < Math.round(r.review_stars) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"
-                            }`}
+                            className={`h-3 w-3 ${idx < Math.round(r.review_stars) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`}
                           />
                         ))}
                       </div>
@@ -208,19 +185,13 @@ export default function Reviews() {
                   </span>
                 </div>
 
-                <p className="mt-3.5 text-xs text-foreground/80 leading-relaxed font-medium">
-                  {r.text.startsWith('"') ? r.text : `"${r.text}"`}
-                </p>
+                <p className="mt-3.5 text-xs text-foreground/80 leading-relaxed font-medium italic">"{r.text}"</p>
 
                 <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.03] pt-3 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1 font-medium">
                     <MessageSquare className="h-3 w-3 text-primary" />
-                    <span>Processed NLP Tuple</span>
+                    <span>Processed NLP Log</span>
                   </span>
-                  <div className="flex items-center gap-1 font-mono text-[10px]">
-                    <span>Score Index:</span>
-                    <span className="font-bold text-foreground">{r.review_stars.toFixed(1)}</span>
-                  </div>
                 </div>
               </motion.div>
             );

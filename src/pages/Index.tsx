@@ -1,14 +1,22 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-const Index = () => {
+export default function Index() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirecciona de inmediato al usuario al centro analítico principal del SaaS
+    navigate("/sentiment", { replace: true });
+  }, [navigate]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-3 animate-pulse">
+        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-xs font-medium text-muted-foreground tracking-wider uppercase">
+          Routing to Brand Intelligence Center...
+        </p>
       </div>
     </div>
   );
-};
-
-export default Index;
+}

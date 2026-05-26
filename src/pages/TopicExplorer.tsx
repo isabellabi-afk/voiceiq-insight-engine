@@ -163,7 +163,7 @@ export function TopicExplorer() {
 
         return {
           stars: starsValue,
-          date: rev?.date || rev?.review_date || "SQL Ledger",
+          date: rev?.date || rev?.review_date || "Review date unavailable",
           text: textContent,
           sentiment: String(rev?.sentiment_binary).toLowerCase() === "positive" || starsValue >= 4 ? ("Positive" as const) : ("Negative" as const),
           themes: matchedTags.length > 0 ? matchedTags.slice(0, 2).map(t => t.toUpperCase()) : ["GENERAL MATCH"],

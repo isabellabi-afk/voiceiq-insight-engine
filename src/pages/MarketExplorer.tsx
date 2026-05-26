@@ -44,7 +44,7 @@ export default function MarketExplorer() {
     };
   }, []);
 
-  // 2. Traer la información real de todos los locales en SQLite para cruzarlos
+  // 2. Traer la información real de todos los locales para cruzarlos
   useEffect(() => {
     async function fetchMarketDataset() {
       setLoading(true);
@@ -57,10 +57,11 @@ export default function MarketExplorer() {
             const metricsObj = kpi?.metrics || kpi || {};
             return {
               name,
-              cuisine: "Restaurant Node",
-              rating: metricsObj.avg_stars || 0,
-              reviews: metricsObj.total_reviews || 0,
-              positive_reviews: metricsObj.positive_reviews || metricsObj.positive_count || 0
+              cuisine: metricsObj.categories || metricsObj.category || "Not available",
+              city: metricsObj.city || "Not available",
+              rating: Number(metricsObj.avg_stars || 0),
+              reviews: Number(metricsObj.total_reviews || metricsObj.reviews_count || 0),
+              positive_reviews: Number(metricsObj.positive_reviews || metricsObj.positive_count || 0)
             };
           });
           const resolved = await batchPromises;
@@ -77,32 +78,28 @@ export default function MarketExplorer() {
 
   // --- PROCESAMIENTO ESTRATÉGICO DE COMPETIDORES REALES ---
   const { competitors, radarData } = useMemo(() => {
-    const isGlobal = activeRestaurant === "all";
-
-    // Encontramos los datos del sujeto activo
-    const currentTarget = allRestaurantsData.find(r => r.name === activeRestaurant) || {
-      name: "Global Average Network",
-      rating: 4.0,
-      reviews: 0,
-      positive_reviews: 0
-    };
-
-    // Calculamos los promedios reales del mercado total en la base de datos
     const totalMarketReviews = allRestaurantsData.reduce((acc, curr) => acc + curr.reviews, 0);
+    const totalPositiveReviews = allRestaurantsData.reduce((acc, curr) => acc + (curr.positive_reviews || 0), 0);
     const avgMarketRating = allRestaurantsData.length > 0 
       ? Number((allRestaurantsData.reduce((acc, curr) => acc + curr.rating, 0) / allRestaurantsData.length).toFixed(1))
-      : 4.0;
+      : 0;
 
-    // Construimos la lista de competidores verídica basada en los otros locales de tu SQLite
+    const currentTarget = allRestaurantsData.find(r => r.name === activeRestaurant) || {
+      name: "Market average",
+      rating: avgMarketRating,
+      reviews: totalMarketReviews,
+      positive_reviews: totalPositiveReviews
+    };
+
+    // Construimos la lista de competidores basada en los otros locales disponibles
     const rawList = allRestaurantsData.map((res) => {
       const isTarget = res.name === activeRestaurant;
       return {
         name: isTarget ? `YOU (${res.name})` : res.name,
-        cuisine: "Local Venue",
+        cuisine: res.cuisine,
+        city: res.city,
         rating: res.rating,
         reviews: res.reviews,
-        // Distancia simulada matemáticamente en radio lógico
-        distance: isTarget ? 0.1 : Number((0.5 + (res.name.length % 5) * 0.4).toFixed(1)), 
         isTarget
       };
     });
@@ -111,17 +108,17 @@ export default function MarketExplorer() {
     const sortedList = [...rawList].sort((a, b) => b.rating - a.rating);
     const finalCompetitorsList = sortedList.map((item, idx) => ({ ...item, rank: idx + 1 }));
 
-    // Configurar Radar 100% real basado en las tasas de éxito de opiniones analizadas en Railway
-    const targetPosPct = currentTarget.reviews > 0 ? Math.round((currentTarget.positive_reviews / currentTarget.reviews) * 100) : 70;
+    // Configurar Radar basado en las tasas de sentimiento devueltas por la API
+    const targetPosPct = currentTarget.reviews > 0 ? Math.round((currentTarget.positive_reviews / currentTarget.reviews) * 100) : 0;
     const globalPosPct = totalMarketReviews > 0 
-      ? Math.round((allRestaurantsData.reduce((acc, curr) => acc + (curr.positive_reviews || 0), 0) / totalMarketReviews) * 100)
-      : 65;
+      ? Math.round((totalPositiveReviews / totalMarketReviews) * 100)
+      : 0;
 
     const rData = [
       { subject: "Overall Rating Index", YOU: Math.round(currentTarget.rating * 20), MarketAvg: Math.round(avgMarketRating * 20) },
       { subject: "Positive Volume Ratio", YOU: targetPosPct, MarketAvg: globalPosPct },
-      { subject: "Review Ingestion Weight", YOU: Math.min(Math.round((currentTarget.reviews / (totalMarketReviews || 1)) * 100) + 40, 100), MarketAvg: 60 },
-      { subject: "Consistency Index", YOU: currentTarget.rating >= 4 ? 85 : 65, MarketAvg: 75 },
+      { subject: "Review Volume Share", YOU: totalMarketReviews > 0 ? Math.round((currentTarget.reviews / totalMarketReviews) * 100) : 0, MarketAvg: allRestaurantsData.length > 0 ? Math.round(100 / allRestaurantsData.length) : 0 },
+      { subject: "Rating Consistency", YOU: Math.round(currentTarget.rating * 20), MarketAvg: Math.round(avgMarketRating * 20) },
     ];
 
     return { competitors: finalCompetitorsList, radarData: rData };
@@ -135,7 +132,7 @@ export default function MarketExplorer() {
     return (
       <DashboardLayout>
         <div className="flex h-96 items-center justify-center text-sm text-muted-foreground animate-pulse">
-          Slicing geographic market rows from Railway SQLite dataset...
+          Loading market data...
         </div>
       </DashboardLayout>
     );
@@ -149,9 +146,9 @@ export default function MarketExplorer() {
             <Building2 className="h-4 w-4" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Market Intelligence Router</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Market data</span>
             <h3 className="text-sm font-semibold text-foreground">
-              {activeRestaurant === "all" ? "Geospatial Macro Framework" : `Local Node Benchmarking: ${activeRestaurant}`}
+              {activeRestaurant === "all" ? "All restaurants" : `Restaurant: ${activeRestaurant}`}
             </h3>
           </div>
         </div>
@@ -160,13 +157,13 @@ export default function MarketExplorer() {
       <PageHeader
         eyebrow="Market"
         title="Local Market Explorer"
-        subtitle="Compare your location real-time index metrics against direct neighborhood radius competitors."
+        subtitle="Compare the selected restaurant against the restaurants returned by the API."
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="font-display text-base font-semibold text-foreground">Market Competitor Index</h3>
+            <h3 className="font-display text-base font-semibold text-foreground">Restaurant comparison index</h3>
             <div className="relative w-full sm:w-64">
               <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
               <input
@@ -188,7 +185,7 @@ export default function MarketExplorer() {
                   <th className="py-3 font-semibold">Classification</th>
                   <th className="py-3 font-semibold">Rating</th>
                   <th className="py-3 font-semibold">Reviews</th>
-                  <th className="py-3 font-semibold">Distance Vector</th>
+                  <th className="py-3 font-semibold">City</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,7 +207,7 @@ export default function MarketExplorer() {
                         </span>
                       </td>
                       <td className="py-3.5 text-muted-foreground font-data">{c.reviews.toLocaleString()}</td>
-                      <td className="py-3.5 text-muted-foreground font-data">{c.distance} km</td>
+                      <td className="py-3.5 text-muted-foreground font-data">{c.city || "Not available"}</td>
                     </tr>
                   );
                 })}

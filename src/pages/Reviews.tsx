@@ -37,7 +37,7 @@ export default function Reviews() {
           setReviews([]);
         }
       } catch (err) {
-        console.error("Critical error syncing review pipeline with SQLite:", err);
+        console.error("Error loading reviews:", err);
         setReviews([]);
       } finally {
         setLoading(false);
@@ -136,7 +136,7 @@ export default function Reviews() {
         {loading ? (
           <div className="glass-card p-12 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span>Streaming relational tuples from SQLite engine...</span>
+            <span>Loading reviews...</span>
           </div>
         ) : filteredReviews.length === 0 ? (
           <div className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10">

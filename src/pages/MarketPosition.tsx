@@ -54,7 +54,7 @@ export default function MarketPosition() {
     };
   }, []);
 
-  // 2. Consulta y consumo real de endpoints SQLite
+  // 2. Consulta y consumo real de endpoints database
   useEffect(() => {
     async function loadMarketPositionMetrics() {
       setLoading(true);
@@ -72,7 +72,7 @@ export default function MarketPosition() {
           setActiveKPIs(null);
         }
       } catch (err) {
-        console.error("Error connecting matrix with Railway logs:", err);
+        console.error("Error connecting matrix with API logs:", err);
       } finally {
         setLoading(false);
       }
@@ -130,10 +130,10 @@ export default function MarketPosition() {
 
   // --- ARQUITECTURA DE MATRIZ 2x2 BASADA EN DRIVERS REALES ---
   const matrix: Quadrant[] = useMemo(() => {
-    // Clasificamos las quejas de NLP reales extraídas de SQLite de forma dinámica
+    // Clasificamos las quejas de NLP reales extraídas de database de forma dinámica
     const criticalIssues = drivers.map(d => ({
       name: `Risk detected: ${d.factor.charAt(0).toUpperCase() + d.factor.slice(1)}`,
-      meta: `${d.negative_reviews || d.count || 0} explicit negative logs found in SQLite`,
+      meta: `${d.negative_reviews || d.count || 0} explicit negative logs found in database`,
       recommendation: `Deploy corrective audits to protect local sentiment and stop NPS leakage.`
     }));
 

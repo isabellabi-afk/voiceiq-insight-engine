@@ -1,35 +1,35 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChefHat, Users, Home, DollarSign, Clock, Sparkles, Star, Building2, AlertCircle } from "lucide-react";
+import { ChefHat, Users, Home, DollarSign, Sparkles, Star, Building2, AlertCircle } from "lucide-react";
 
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getTopProblemDrivers, getRestaurantKPIs } from "@/apiService";
 
-// Mapeo dinámico de iconos y labels según lo que devuelva el NLP en SQLite
+// Mapeo semántico para asociar los factores de la BD con la interfaz
 const factorMetaMap: Record<string, { label: string; icon: any; positiveKeywords: string[]; negativeKeywords: string[] }> = {
   comida: {
     label: "Food Quality",
     icon: ChefHat,
-    positiveKeywords: ["buen sabor", "fresco", "porciones generosas", "buena cocción"],
-    negativeKeywords: ["insípido", "frío", "poca cantidad", "salado"],
+    positiveKeywords: ["buen sabor", "fresco", "porciones", "sazón"],
+    negativeKeywords: ["insípido", "frío", "blanda", "salado", "mal cocinado"],
   },
   servicio: {
     label: "Service Experience",
     icon: Users,
-    positiveKeywords: ["atento", "rápido", "amable", "buena atención"],
-    negativeKeywords: ["lento", "grosero", "desorganizado", "ignorado"],
+    positiveKeywords: ["atento", "rápido", "amable", "profesional"],
+    negativeKeywords: ["lento", "grosero", "desorganizado", "desatendido"],
   },
   ambiente: {
     label: "Ambiance & Atmosphere",
     icon: Home,
-    positiveKeywords: ["acogedor", "buena música", "limpio", "decoración bonita"],
-    negativeKeywords: ["ruidoso", "muy ruidoso", "incómodo", "reducido"],
+    positiveKeywords: ["acogedor", "buena música", "bonito decorado"],
+    negativeKeywords: ["ruidoso", "incómodo", "cramped", "sucio"],
   },
   precio: {
     label: "Value & Pricing",
     icon: DollarSign,
-    positiveKeywords: ["buen precio", "descuentos", "económico"],
+    positiveKeywords: ["buen precio", "accesible", "buena relación"],
     negativeKeywords: ["caro", "sobreprecio", "no lo vale"],
   },
 };
@@ -86,7 +86,6 @@ function SentimentGauge({ value }: { value: number }) {
           {value}%
         </text>
       </svg>
-
       <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">Confidence Score</p>
     </div>
   );
@@ -99,11 +98,11 @@ export function TopicExplorer() {
 
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [drivers, setDrivers] = useState<any[]>([]);
+  const [realReviews, setRealReviews] = useState<any[]>([]);
   const [totalReviews, setTotalReviews] = useState<number>(0);
-  const [positiveReviewsCount, setPositiveReviewsCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // 1. Escucha de cambios de contexto/restaurante
+  // 1. Escuchar los cambios del menú lateral
   useEffect(() => {
     const checkActiveSession = () => {
       const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
@@ -119,28 +118,25 @@ export function TopicExplorer() {
     };
   }, []);
 
-  // 2. Sincronización con base de datos real SQLite
+  // 2. Traer los datos reales del backend
   useEffect(() => {
     async function syncDataset() {
       setLoading(true);
       try {
-        // Obtenemos quejas del endpoint unificado
         const driversData = await getTopProblemDrivers(activeRestaurant);
         const kpiData = await getRestaurantKPIs(activeRestaurant);
 
-        // Extraemos totales de la estructura real
-        const metrics = activeRestaurant === "all" ? kpiData : kpiData?.metrics;
-        const total = metrics?.total_reviews || 0;
-        const posCount = metrics?.positive_reviews || Math.round(total * 0.7); // Fallback seguro de ratio
+        // Guardamos las opiniones reales que devuelve tu endpoint de KPIs
+        const rawReviews = kpiData?.reviews || [];
+        setRealReviews(rawReviews);
 
-        setTotalReviews(total);
-        setPositiveReviewsCount(posCount);
+        const metrics = activeRestaurant === "all" ? kpiData : kpiData?.metrics;
+        setTotalReviews(metrics?.total_reviews || 0);
 
         if (driversData && driversData.top_problem_drivers) {
           const apiDrivers = driversData.top_problem_drivers;
           setDrivers(apiDrivers);
           
-          // Auto-seleccionar el primer factor real disponible para no dejar la pantalla en blanco
           if (apiDrivers.length > 0) {
             setSelectedTheme(apiDrivers[0].factor);
           } else {
@@ -157,7 +153,7 @@ export function TopicExplorer() {
     syncDataset();
   }, [activeRestaurant]);
 
-  // 3. Procesamiento reactivo del listado superior analizado
+  // 3. Procesar los temas/factores superiores
   const processedThemes = useMemo(() => {
     if (!drivers.length) return [];
     
@@ -167,12 +163,10 @@ export function TopicExplorer() {
         label: `Cluster: ${factorName}`,
         icon: Sparkles,
         positiveKeywords: ["general"],
-        negativeKeywords: ["review log"],
+        negativeKeywords: ["analizado"],
       };
 
       const count = Number(d.negative_reviews || 0);
-      
-      // El porcentaje de sentimiento del cluster se asocia inversamente a sus quejas indexadas
       const calculatedSentiment = totalReviews > 0 
         ? Math.max(100 - Math.round((count / totalReviews) * 100), 5) 
         : 70;
@@ -188,30 +182,42 @@ export function TopicExplorer() {
     });
   }, [drivers, totalReviews]);
 
-  // 4. Generación de fragmentos de texto basados en logs analizados reales
+  // 4. Filtrar y segmentar las opiniones reales según el cluster seleccionado
   const activeDeepDive = useMemo(() => {
     const currentThemeObj = processedThemes.find((t) => t.id === selectedTheme);
     if (!currentThemeObj) {
       return { positive: [], negative: [], reviews: [] };
     }
 
-    // Usamos las palabras clave dinámicas de nuestro mapa semántico
     const positive = currentThemeObj.meta.positiveKeywords;
     const negative = currentThemeObj.meta.negativeKeywords;
 
-    // Generamos ejemplos de reviews contextualizados con los datos de conteo de la BD
-    const reviews = [
-      {
-        stars: currentThemeObj.sentiment > 50 ? 4 : 2,
-        date: "Live Log",
-        text: `Multiple customer signals processed. Segment isolation detected issues related to "${selectedTheme}" within the SQLite review transaction space.`,
-        sentiment: currentThemeObj.sentiment > 50 ? ("Positive" as const) : ("Negative" as const),
-        themes: [currentThemeObj.label],
-      },
-    ];
+    // Filtramos las reviews reales de la base de datos para mostrar las que tengan relación con el tema
+    const filteredReviews = realReviews
+      .filter((rev: any) => {
+        if (!rev.text) return false;
+        const textLower = rev.text.toLowerCase();
+        // Si estamos en "comida", buscamos palabras clave de comida, etc.
+        const keywords = [...positive, ...negative, selectedTheme];
+        return keywords.some(keyword => textLower.includes(keyword));
+      })
+      // Si no encuentra coincidencias específicas, te muestra las opiniones de ese local para no dejarlo vacío
+      .slice(0, 3); 
 
-    return { positive, negative, reviews };
-  }, [selectedTheme, processedThemes]);
+    const finalReviews = filteredReviews.length > 0 ? filteredReviews : realReviews.slice(0, 3);
+
+    return {
+      positive,
+      negative,
+      reviews: finalReviews.map((rev: any) => ({
+        stars: rev.stars || rev.rating || 5,
+        date: rev.date || "SQLite Log",
+        text: rev.text || "No text available",
+        sentiment: (rev.stars || rev.rating || 5) >= 4 ? ("Positive" as const) : ("Negative" as const),
+        themes: [currentThemeObj.label],
+      }))
+    };
+  }, [selectedTheme, processedThemes, realReviews]);
 
   const activeSentimentValue = useMemo(() => {
     return processedThemes.find((t) => t.id === selectedTheme)?.sentiment || 0;
@@ -235,12 +241,10 @@ export function TopicExplorer() {
           <div className="bg-primary/10 p-2 rounded-xl text-primary">
             <Building2 className="h-4 w-4" />
           </div>
-
           <div>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
               Semantic Router Logs
             </span>
-
             <h3 className="text-sm font-semibold text-foreground">
               {activeRestaurant === "all" ? "Macro Ingestion Pipeline" : `Segment Isolation: ${activeRestaurant}`}
             </h3>
@@ -280,7 +284,6 @@ export function TopicExplorer() {
                   <div className={`p-2 rounded-xl ${isSelected ? "bg-primary text-white" : "bg-foreground/[0.04] text-muted-foreground"}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-
                   <span className="text-[11px] font-medium text-muted-foreground">
                     {theme.mentions.toLocaleString()} {theme.mentions === 1 ? "cluster" : "clusters"}
                   </span>
@@ -303,7 +306,6 @@ export function TopicExplorer() {
                       }}
                     />
                   </div>
-
                   <span className="text-[11px] font-bold text-foreground">{theme.sentiment}%</span>
                 </div>
               </button>
@@ -329,13 +331,9 @@ export function TopicExplorer() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 block mb-2">
                   High Frequency Vectors (+)
                 </span>
-
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.positive.map((w) => (
-                    <span
-                      key={w}
-                      className="text-[10px] font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-md border border-green-200"
-                    >
+                    <span key={w} className="text-[10px] font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-md border border-green-200">
                       {w}
                     </span>
                   ))}
@@ -346,13 +344,9 @@ export function TopicExplorer() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 block mb-2">
                   Critical Risk Nodes (-)
                 </span>
-
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.negative.map((w) => (
-                    <span
-                      key={w}
-                      className="text-[10px] font-medium bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-200"
-                    >
+                    <span key={w} className="text-[10px] font-medium bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-200">
                       {w}
                     </span>
                   ))}
@@ -361,7 +355,7 @@ export function TopicExplorer() {
             </div>
           </div>
 
-          {/* REVIEWS SEGMENTADAS */}
+          {/* REVIEWS SEGMENTADAS REALES */}
           <div className="glass-card p-6 lg:col-span-2">
             <h3 className="text-sm font-bold text-foreground mb-4">Granular Text Segmentations</h3>
 
@@ -399,7 +393,6 @@ export function TopicExplorer() {
                         </span>
                       ))}
                     </div>
-
                     <span>{rev.date}</span>
                   </div>
                 </div>

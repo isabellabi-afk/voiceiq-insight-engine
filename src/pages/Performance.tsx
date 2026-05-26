@@ -14,13 +14,14 @@ import {
 } from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getOverviewData, getRestaurantKPIs } from "../apiService";
+import { getOverviewData, getRestaurantKPIs, getPerformanceReviews } from "../apiService";
 
 export default function Performance() {
   const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
   const [globalData, setGlobalData] = useState<any>(null);
   const [restaurantData, setRestaurantData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [reviewsSeries, setReviewsSeries] = useState<any[]>([]);
 
   // 1. Escuchar de manera reactiva la sesión del restaurante global
   useEffect(() => {
@@ -38,20 +39,22 @@ export default function Performance() {
     };
   }, []);
 
-  // 2. Carga e Ingestión de Datos Reales desde Railway
+  // 2. Carga de datos reales desde la API
   useEffect(() => {
     async function fetchPerformanceData() {
       setLoading(true);
       try {
-        if (activeRestaurant === "all") {
-          const overview = await getOverviewData();
-          if (overview) setGlobalData(overview);
-        } else {
-          const resKPIs = await getRestaurantKPIs(activeRestaurant);
-          if (resKPIs) setRestaurantData(resKPIs);
-        }
+        const [overview, resKPIs, reviews] = await Promise.all([
+          getOverviewData(),
+          activeRestaurant === "all" ? Promise.resolve(null) : getRestaurantKPIs(activeRestaurant),
+          getPerformanceReviews(activeRestaurant),
+        ]);
+
+        if (overview) setGlobalData(overview);
+        setRestaurantData(resKPIs);
+        setReviewsSeries(reviews);
       } catch (err) {
-        console.error("Critical error syncing operations ledger:", err);
+        console.error("Error loading performance data:", err);
       } finally {
         setLoading(false);
       }
@@ -68,28 +71,35 @@ export default function Performance() {
     const avgRating = currentSource?.avg_stars ? Number(currentSource.avg_stars.toFixed(1)) : 0.0;
     const reviewsCollected = currentSource?.total_reviews || currentSource?.reviews_count || 0;
     
-    // Cálculo de distribución de sentimiento real para simular canales analíticos legítimos
     const positiveReviews = currentSource?.positive_reviews || currentSource?.positive_count || 0;
-    const negativeReviews = reviewsCollected - positiveReviews;
+    const negativeReviews = Math.max(0, reviewsCollected - positiveReviews);
 
-    // Métricas relativas estables basadas en datos reales de la base de datos
-    const repeatVisitRate = reviewsCollected > 0 ? `${Math.min(45, Math.max(12, Math.round((positiveReviews / reviewsCollected) * 40)))}%` : "N/A";
+    const confidenceRate = reviewsCollected > 0 ? `${Math.round((positiveReviews / reviewsCollected) * 100)}%` : "N/A";
     const growthTrendPct = currentSource?.growth_percentage !== undefined 
       ? `${currentSource.growth_percentage >= 0 ? "+" : ""}${currentSource.growth_percentage}%` 
-      : "+14.2%";
+      : "N/A";
 
-    // Re-estructuración temporal simplificada usando variaciones reales del rating y volumen activo
-    const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"];
-    const trendData = months.map((m, i) => {
-      const stepModifier = (i * 0.05) * (positiveReviews >= negativeReviews ? 1 : -1);
-      return {
+    const monthlyBuckets = reviewsSeries.reduce((acc: Record<string, { total: number; ratingSum: number }>, review: any) => {
+      if (!review.date) return acc;
+      const parsedDate = new Date(review.date);
+      if (Number.isNaN(parsedDate.getTime())) return acc;
+      const key = parsedDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      const rating = Number(review.review_stars || review.stars || review.rating || 0);
+      acc[key] = acc[key] || { total: 0, ratingSum: 0 };
+      acc[key].total += 1;
+      acc[key].ratingSum += rating;
+      return acc;
+    }, {});
+
+    const trendData = Object.entries(monthlyBuckets)
+      .map(([m, values]) => ({
         m,
-        rating: reviewsCollected > 0 ? parseFloat(Math.min(5, Math.max(1, avgRating + stepModifier)).toFixed(2)) : 0,
-        reviews: reviewsCollected > 0 ? Math.round((reviewsCollected / 6) + (i * 2)) : 0,
-      };
-    });
+        rating: values.total > 0 ? Number((values.ratingSum / values.total).toFixed(2)) : 0,
+        reviews: values.total,
+      }))
+      .slice(-6);
 
-    // Segmentación volumétrica real basada puramente en la clasificación NLP verificada en SQLite
+    // Segmentación volumétrica basada en la clasificación de sentimiento devuelta por la API
     const channelData = [
       { ch: "Positive NLP", volume: positiveReviews },
       { ch: "Negative NLP", volume: negativeReviews },
@@ -98,19 +108,19 @@ export default function Performance() {
     return {
       avgRating,
       reviewsCollected,
-      repeatVisitRate,
+      repeatVisitRate: confidenceRate,
       mentionsGrowth: growthTrendPct,
       trendData,
       channelData
     };
-  }, [activeRestaurant, globalData, restaurantData]);
+  }, [activeRestaurant, globalData, restaurantData, reviewsSeries]);
 
   if (loading) {
     return (
       <DashboardLayout>
         <div className="flex h-96 flex-col items-center justify-center text-sm text-muted-foreground gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span>Synchronizing relational ledger frames from SQLite data stream...</span>
+          <span>Loading performance data...</span>
         </div>
       </DashboardLayout>
     );
@@ -125,17 +135,17 @@ export default function Performance() {
             <Building2 className="h-4 w-4" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Operational Metric Stream</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Performance data</span>
             <h3 className="text-sm font-semibold text-foreground">
               {activeRestaurant === "all" 
-                ? "Consolidated Network Operations (All Nodes)" 
-                : `Isolated Analytics Frame: ${activeRestaurant}`}
+                ? "All restaurants" 
+                : `Restaurant: ${activeRestaurant}`}
             </h3>
           </div>
         </div>
         <div className="text-right hidden sm:block">
           <span className="text-xs font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full">
-            SQLite Ledger Connected
+            API connected
           </span>
         </div>
       </div>
@@ -151,8 +161,8 @@ export default function Performance() {
         {[
           { label: "Avg rating (Lifetime)", value: `${dynamicMetrics.avgRating} ★`, icon: Activity },
           { label: "Reviews collected", value: dynamicMetrics.reviewsCollected.toLocaleString(), icon: BarChart3 },
-          { label: "Confidence Core Rate", value: dynamicMetrics.repeatVisitRate, icon: Users },
-          { label: "SQL Ingestion Growth", value: dynamicMetrics.mentionsGrowth, icon: TrendingUp },
+          { label: "Positive review rate", value: dynamicMetrics.repeatVisitRate: confidenceRate, icon: Users },
+          { label: "Review volume growth", value: dynamicMetrics.mentionsGrowth, icon: TrendingUp },
         ].map((k, i) => (
           <motion.div
             key={k.label}
@@ -180,7 +190,7 @@ export default function Performance() {
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4">
             <h3 className="font-display text-base font-semibold text-foreground">Rating & Quality Trajectory</h3>
-            <p className="text-xs text-muted-foreground">Rolling chronological tracking index inferred from active data segments</p>
+            <p className="text-xs text-muted-foreground">Monthly average based on dated reviews returned by the API</p>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -200,7 +210,7 @@ export default function Performance() {
                 <Line 
                   type="monotone" 
                   dataKey="rating" 
-                  name="Verified Rating"
+                  name="Avg rating"
                   stroke="hsl(var(--primary))" 
                   strokeWidth={3} 
                   dot={{ r: 3, strokeWidth: 1 }} 
@@ -215,7 +225,7 @@ export default function Performance() {
         <div className="glass-card p-6">
           <div className="mb-4">
             <h3 className="font-display text-base font-semibold text-foreground">Reviews by Semantic Classification</h3>
-            <p className="text-xs text-muted-foreground">Volume breakdown based strictly on pipeline extraction records</p>
+            <p className="text-xs text-muted-foreground">Volume breakdown based on review sentiment returned by the API</p>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -232,7 +242,7 @@ export default function Performance() {
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="volume" name="Ingested Volume" fill="hsl(var(--primary))" opacity={0.85} radius={[0, 6, 6, 0]} />
+                <Bar dataKey="volume" name="Review volume" fill="hsl(var(--primary))" opacity={0.85} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -68,7 +68,7 @@ export default function Overview() {
         const restaurantNames = await getRealRestaurantsList();
         setRealRestaurants(restaurantNames);
       } catch (err) {
-        console.error("Error syncing metadata with Railway:", err);
+        console.error("Error syncing metadata:", err);
       } finally {
         setLoading(false);
       }
@@ -76,7 +76,7 @@ export default function Overview() {
     loadInitialData();
   }, []);
 
-  // 2. Consulta dinámica a endpoints SQLite sin fallbacks falsos
+  // 2. Consulta dinámica a endpoints database sin fallbacks falsos
   useEffect(() => {
     async function syncDynamicMetrics() {
       try {
@@ -108,7 +108,7 @@ export default function Overview() {
   const totalReviews = currentMetrics && typeof currentMetrics.total_reviews === 'number' ? currentMetrics.total_reviews : 0;
   const csatValue = currentMetrics && currentMetrics.avg_stars ? Number(currentMetrics.avg_stars.toFixed(1)) : 0;
 
-  // Cálculo de porcentajes puros y verídicos extraídos del SQLite
+  // Cálculo de porcentajes puros y verídicos extraídos del database
   const positivePct = useMemo(() => {
     if (isGlobal) return currentMetrics?.positive_pct || 0;
     if (totalReviews > 0) {
@@ -130,7 +130,7 @@ export default function Overview() {
     { name: "Negative Reviews", value: negativePct, color: "#F9A8D4" },
   ];
 
-  // Mapeo adaptivo y limpio de factores NLP de SQLite
+  // Mapeo adaptivo y limpio de factores NLP de database
   const processedDrivers = useMemo(() => {
     if (!driversData || !Array.isArray(driversData)) return [];
     return driversData
@@ -167,7 +167,7 @@ export default function Overview() {
     return (
       <DashboardLayout>
         <div className="flex h-96 items-center justify-center text-sm text-muted-foreground animate-pulse">
-          Querying Yelp SQLite tables and downloading live active brand entities...
+          Loading dashboard data...
         </div>
       </DashboardLayout>
     );
@@ -180,7 +180,7 @@ export default function Overview() {
         <PageHeader
           eyebrow="Overview"
           title="Intelligence Dashboard"
-          subtitle="Real-time customer analytics extracted from your processed Yelp SQLite dataset."
+          subtitle="Customer analytics extracted from the connected API."
         />
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white/60 backdrop-blur-md p-3 rounded-2xl border border-white/80 shadow-sm self-start xl:self-center">
@@ -282,7 +282,7 @@ export default function Overview() {
         <div className="glass-card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-semibold">Sentiment Distribution</h3>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Live SQLite Data</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Live API Data</span>
           </div>
           <div className="relative h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -357,7 +357,7 @@ export default function Overview() {
               <div className="flex flex-col items-center justify-center p-8 text-center h-48 border border-dashed border-foreground/10 rounded-2xl bg-foreground/[0.01]">
                 <CheckCircle2 className="h-6 w-6 text-green-500 mb-2" />
                 <p className="text-xs text-muted-foreground font-medium max-w-xs">
-                  No critical negative driver signals isolated for this specific brand entity inside SQLite.
+                  No critical negative driver signals isolated for this specific brand entity in the review data.
                 </p>
               </div>
             )}
@@ -397,7 +397,7 @@ export default function Overview() {
                   </span>
                 </div>
                 <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
-                  Negative semantic weight identified inside SQLite reviews for the category "{issue.name}". Remediation recommended.
+                  Negative semantic weight identified in the review data reviews for the category "{issue.name}". Remediation recommended.
                 </p>
                 <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Suggested Action</p>
@@ -413,3 +413,4 @@ export default function Overview() {
     </DashboardLayout>
   );
 }
+

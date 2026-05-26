@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ChefHat, Users, Home, DollarSign, Sparkles, Star, Building2, AlertCircle, Loader2 } from "lucide-react";
-
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { getTopProblemDrivers, getReviewsByRestaurant } from "@/apiService";
@@ -34,7 +33,6 @@ const factorMetaMap: Record<string, { label: string; icon: any; positiveKeywords
 };
 
 function SentimentGauge({ value }: { value: number }) {
-  // Ajuste matemático de ángulo: 0% -> -90deg, 100% -> 90deg
   const angle = (value / 100) * 180 - 90;
 
   return (
@@ -68,36 +66,22 @@ function SentimentGauge({ value }: { value: number }) {
           initial={{ rotate: -90 }}
           animate={{ rotate: angle }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          style={{
-            transformOrigin: "100px 100px",
-            transformBox: "view-box",
-          }}
+          style={{ transformOrigin: "100px 100px", transformBox: "view-box" }}
         />
 
         <circle cx="100" cy="100" r="6" fill="currentColor" className="text-foreground" />
 
-        <text
-          x="100"
-          y="122"
-          textAnchor="middle"
-          className="font-bold fill-current text-foreground font-mono"
-          style={{ fontSize: "18px" }}
-        >
+        <text x="100" y="122" textAnchor="middle" className="font-bold fill-current text-foreground font-mono" style={{ fontSize: "18px" }}>
           {value}%
         </text>
       </svg>
-      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-        Cluster Health Rate
-      </p>
+      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Cluster Health Rate</p>
     </div>
   );
 }
 
 export function TopicExplorer() {
-  const [activeRestaurant, setActiveRestaurant] = useState<string>(() => {
-    return localStorage.getItem("selected_yelp_restaurant") || "all";
-  });
-
+  const [activeRestaurant, setActiveRestaurant] = useState<string>(() => localStorage.getItem("selected_yelp_restaurant") || "all");
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [drivers, setDrivers] = useState<any[]>([]);
   const [realReviews, setRealReviews] = useState<any[]>([]);
@@ -105,13 +89,10 @@ export function TopicExplorer() {
 
   useEffect(() => {
     const checkActiveSession = () => {
-      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
-      setActiveRestaurant(saved);
+      setActiveRestaurant(localStorage.getItem("selected_yelp_restaurant") || "all");
     };
-
     window.addEventListener("storage", checkActiveSession);
     window.addEventListener("restaurantChanged", checkActiveSession);
-
     return () => {
       window.removeEventListener("storage", checkActiveSession);
       window.removeEventListener("restaurantChanged", checkActiveSession);
@@ -124,18 +105,12 @@ export function TopicExplorer() {
       try {
         const driversData = await getTopProblemDrivers(activeRestaurant);
         const reviewsData = await getReviewsByRestaurant(activeRestaurant);
-
         setRealReviews(reviewsData || []);
 
         if (driversData && driversData.top_problem_drivers) {
           const apiDrivers = driversData.top_problem_drivers;
           setDrivers(apiDrivers);
-          
-          if (apiDrivers.length > 0) {
-            setSelectedTheme(apiDrivers[0].factor);
-          } else {
-            setSelectedTheme("");
-          }
+          if (apiDrivers.length > 0) setSelectedTheme(apiDrivers[0].factor);
         }
       } catch (err) {
         console.error("Error syncing NLP content pipeline:", err);
@@ -143,15 +118,11 @@ export function TopicExplorer() {
         setLoading(false);
       }
     }
-
     syncDataset();
   }, [activeRestaurant]);
 
-  // Análisis matemático real de los clusters provenientes de SQLite
   const processedThemes = useMemo(() => {
     if (!drivers.length) return [];
-    
-    // Obtener el total acumulado de menciones críticas para calcular impactos porcentuales verídicos
     const totalCriticalMentions = drivers.reduce((acc, curr) => acc + Number(curr.negative_reviews || curr.count || 0), 0);
 
     return drivers.map((d: any) => {
@@ -164,32 +135,20 @@ export function TopicExplorer() {
       };
 
       const count = Number(d.negative_reviews || d.count || 0);
-      
-      // El ratio de salud se calcula de forma inversa al volumen de quejas del driver
       const calculatedSentiment = totalCriticalMentions > 0 
         ? Math.max(5, Math.min(95, Math.round(100 - (count / totalCriticalMentions) * 100)))
         : 70;
 
-      return {
-        id: d.factor,
-        label: meta.label,
-        icon: meta.icon,
-        mentions: count,
-        sentiment: calculatedSentiment,
-        meta,
-      };
+      return { id: d.factor, label: meta.label, icon: meta.icon, mentions: count, sentiment: calculatedSentiment, meta };
     });
   }, [drivers]);
 
-  // Extracción e indexación semántica genuina de reviews basadas en el Topic
   const activeDeepDive = useMemo(() => {
     const currentThemeObj = processedThemes.find((t) => t.id === selectedTheme);
     if (!currentThemeObj) return { positive: [], negative: [], reviews: [] };
 
     const positive = currentThemeObj.meta.positiveKeywords;
     const negative = currentThemeObj.meta.negativeKeywords;
-
-    // Filtrar reseñas reales cuyo texto contenga de verdad términos relacionados al cluster activo
     const allKeywords = [...positive, ...negative];
     
     const filteredAndMapped = realReviews
@@ -200,8 +159,6 @@ export function TopicExplorer() {
       .map((rev: any) => {
         const starsValue = Number(rev?.review_stars || rev?.stars || rev?.rating || 3);
         const textContent = rev?.text || "No text segment retrieved.";
-        
-        // Detección automática del tag interno que disparó la clasificación
         const matchedTags = allKeywords.filter(keyword => textContent.toLowerCase().includes(keyword));
 
         return {
@@ -212,7 +169,6 @@ export function TopicExplorer() {
           themes: matchedTags.length > 0 ? matchedTags.slice(0, 2).map(t => t.toUpperCase()) : ["GENERAL MATCH"],
         };
       })
-      // Limitar a un plano de 5 registros para evitar sobrecarga del árbol DOM
       .slice(0, 5);
 
     return { positive, negative, reviews: filteredAndMapped };
@@ -227,7 +183,7 @@ export function TopicExplorer() {
       <DashboardLayout>
         <div className="flex h-96 flex-col items-center justify-center text-sm text-muted-foreground gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span>Parsing conversational vectors and NLP intersections from Railway...</span>
+          <span>Parsing conversational vectors and NLP intersections...</span>
         </div>
       </DashboardLayout>
     );
@@ -235,16 +191,13 @@ export function TopicExplorer() {
 
   return (
     <DashboardLayout>
-      {/* STATUS BAR */}
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
+      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           <div className="bg-primary/10 p-2 rounded-xl text-primary">
             <Building2 className="h-4 w-4" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Semantic Router Logs
-            </span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Semantic Router Logs</span>
             <h3 className="text-sm font-semibold text-foreground">
               {activeRestaurant === "all" ? "Macro Ingestion Pipeline" : `Segment Isolation: ${activeRestaurant}`}
             </h3>
@@ -262,9 +215,6 @@ export function TopicExplorer() {
         <div className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10 mb-6">
           <AlertCircle className="h-8 w-8 text-muted-foreground/40 mb-2" />
           <p className="text-sm font-semibold text-foreground">No NLP clusters mapped</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            The active database segment does not contain structured feature drivers for this entity.
-          </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -276,21 +226,15 @@ export function TopicExplorer() {
               <button
                 key={theme.id}
                 onClick={() => setSelectedTheme(theme.id)}
-                className={`glass-card p-4 text-left transition-all relative overflow-hidden cursor-pointer ${
-                  isSelected ? "ring-1.5 ring-primary bg-primary/[0.01]" : "hover:bg-foreground/[0.01]"
-                }`}
+                className={`glass-card p-4 text-left transition-all cursor-pointer ${isSelected ? "ring-1.5 ring-primary bg-primary/[0.01]" : "hover:bg-foreground/[0.01]"}`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`p-2 rounded-xl ${isSelected ? "bg-primary text-white" : "bg-foreground/[0.04] text-muted-foreground"}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className="text-[11px] font-mono font-bold text-muted-foreground">
-                    {theme.mentions} logs
-                  </span>
+                  <span className="text-[11px] font-mono font-bold text-muted-foreground">{theme.mentions} logs</span>
                 </div>
-
                 <h4 className="text-xs font-bold text-foreground mb-1.5 tracking-tight">{theme.label}</h4>
-
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-full bg-foreground/[0.04] rounded-full overflow-hidden">
                     <div
@@ -311,82 +255,52 @@ export function TopicExplorer() {
 
       {activeDeepDive.reviews.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* SECCIÓN IZQUIERDA: DIAGNÓSTICO DEL CLUSTER */}
           <div className="glass-card p-6 flex flex-col justify-between gap-6">
             <div>
               <h3 className="text-sm font-bold text-foreground">Cluster Diagnostics</h3>
               <p className="text-[11px] text-muted-foreground">Calculated relational density of active node</p>
             </div>
-
             <SentimentGauge value={activeSentimentValue} />
-
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-2">
-                  High Frequency Tokens (+)
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-2">High Frequency Tokens (+)</span>
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.positive.map((w) => (
-                    <span key={w} className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-500/10 capitalize">
-                      {w}
-                    </span>
+                    <span key={w} className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-500/10 capitalize">{w}</span>
                   ))}
                 </div>
               </div>
-
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block mb-2">
-                  Critical Risk Tokens (-)
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block mb-2">Critical Risk Tokens (-)</span>
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.negative.map((w) => (
-                    <span key={w} className="text-[10px] font-semibold bg-rose-500/10 text-rose-700 px-2 py-0.5 rounded-md border border-rose-500/10 capitalize">
-                      {w}
-                    </span>
+                    <span key={w} className="text-[10px] font-semibold bg-rose-500/10 text-rose-700 px-2 py-0.5 rounded-md border border-rose-500/10 capitalize">{w}</span>
                   ))}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECCIÓN DERECHA: REVIEWS SUBORDINADAS REALES */}
           <div className="glass-card p-6 lg:col-span-2">
             <h3 className="text-sm font-bold text-foreground mb-4">Granular Text Segmentations (Filtered Matrix)</h3>
-
             <div className="space-y-3.5">
               {activeDeepDive.reviews.map((rev, i) => {
                 const isPositive = rev.sentiment === "Positive";
-                const badgeStyle = isPositive 
-                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/10" 
-                  : "bg-rose-500/10 text-rose-600 border-rose-500/10";
-
                 return (
                   <div key={`real-rev-${i}`} className="p-4 rounded-xl border border-foreground/[0.03] bg-foreground/[0.01]/40 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex gap-0.5">
                         {Array.from({ length: 5 }).map((_, idx) => (
-                          <Star
-                            key={idx}
-                            className={`h-3 w-3 ${idx < rev.stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`}
-                          />
+                          <Star key={idx} className={`h-3 w-3 ${idx < rev.stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`} />
                         ))}
                       </div>
-
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${badgeStyle}`}>
-                        {rev.sentiment}
-                      </span>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${isPositive ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/10" : "bg-rose-500/10 text-rose-600 border-rose-500/10"}`}>{rev.sentiment}</span>
                     </div>
-
-                    <p className="text-xs text-foreground/80 italic font-medium leading-relaxed">
-                      "{rev.text.replace(/^["']|["']$/g, '')}"
-                    </p>
-
+                    <p className="text-xs text-foreground/80 italic font-medium leading-relaxed">"{rev.text.replace(/^["']|["']$/g, '')}"</p>
                     <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-2 border-t border-foreground/[0.02]">
                       <div className="flex flex-wrap gap-1">
                         {rev.themes.map((t) => (
-                          <span key={t} className="bg-primary/10 text-primary font-mono text-[9px] px-1.5 py-0.5 rounded-sm font-bold">
-                            #{t}
-                          </span>
+                          <span key={t} className="bg-primary/10 text-primary font-mono text-[9px] px-1.5 py-0.5 rounded-sm font-bold">#{t}</span>
                         ))}
                       </div>
                       <span className="font-mono text-[9px]">{rev.date}</span>

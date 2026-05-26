@@ -128,9 +128,9 @@ export default function MarketPosition() {
     },
   ];
 
-  // --- ARQUITECTURA DE MATRIZ 2x2 BASADA EN DRIVERS REALES (CIERRES REPARADOS) ---
+  // --- ARQUITECTURA DE MATRIZ 2x2 BASADA EN DRIVERS REALES ---
   const matrix: Quadrant[] = useMemo(() => {
-    // Clasificamos las quejas de NLP reales extraídas de SQLite
+    // Clasificamos las quejas de NLP reales extraídas de SQLite de forma dinámica
     const criticalIssues = drivers.map(d => ({
       name: `Risk detected: ${d.factor.charAt(0).toUpperCase() + d.factor.slice(1)}`,
       meta: `${d.negative_reviews || d.count || 0} explicit negative logs found in SQLite`,
@@ -172,8 +172,8 @@ export default function MarketPosition() {
         items: criticalIssues.length > 0 ? criticalIssues : [
           {
             name: "Friction Point Analysis",
-            meta: `Analyzing critical volume ratios`,
-            recommendation: "Monitor text stream patterns in Topic Explorer."
+            meta: `${negativePct}% critical volume ratio registered`,
+            recommendation: "Monitor text stream patterns in Topic Explorer immediately."
           }
         ],
       },
@@ -191,7 +191,7 @@ export default function MarketPosition() {
         ],
       }
     ];
-  }, [drivers, positivePct, ratingValue, shareOfVoice]);
+  }, [drivers, positivePct, negativePct, ratingValue, shareOfVoice]);
 
   // --- RETORNO DEL COMPONENTE JSX DE TU DISEÑO ORIGINAL ---
   return (

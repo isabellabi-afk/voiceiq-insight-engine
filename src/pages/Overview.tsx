@@ -76,11 +76,10 @@ export default function Overview() {
     loadInitialData();
   }, []);
 
-  // 2. CONEXIÓN REAL SIN HARDCODEO: Consulta directa a los módulos del Backend
+  // 2. Consulta dinámica a endpoints SQLite sin fallbacks falsos
   useEffect(() => {
     async function syncDynamicMetrics() {
       try {
-        // Consultamos la API real pasándole el restaurante actual (global o aislado)
         const driversRes = await getTopProblemDrivers(activeRestaurant);
         if (driversRes && driversRes.top_problem_drivers) {
           setDriversData(driversRes.top_problem_drivers);
@@ -109,29 +108,29 @@ export default function Overview() {
   const totalReviews = currentMetrics && typeof currentMetrics.total_reviews === 'number' ? currentMetrics.total_reviews : 0;
   const csatValue = currentMetrics && currentMetrics.avg_stars ? Number(currentMetrics.avg_stars.toFixed(1)) : 0;
 
-  // Cálculo de porcentajes puros según datos reales extraídos del SQLite
+  // Cálculo de porcentajes puros y verídicos extraídos del SQLite
   const positivePct = useMemo(() => {
     if (isGlobal) return currentMetrics?.positive_pct || 0;
     if (totalReviews > 0) {
       const posReviews = currentMetrics?.positive_reviews || currentMetrics?.positive_count || 0;
       return Math.round((posReviews / totalReviews) * 100);
     }
-    return csatValue >= 3.5 ? 75 : 0; 
-  }, [isGlobal, currentMetrics, totalReviews, csatValue]);
+    return 0; 
+  }, [isGlobal, currentMetrics, totalReviews]);
 
-  const negativePct = totalReviews > 0 ? Math.round(100 - positivePct) : 100 - positivePct;
+  const negativePct = totalReviews > 0 ? Math.round(100 - positivePct) : 0;
   const npsValue = totalReviews > 0 ? Math.round(positivePct - negativePct) : 0;
   const npsText = npsValue >= 0 ? `+${npsValue}` : `${npsValue}`;
 
   // Formateador dinámico para el gráfico circular
-  const currentSentimentData = totalReviews === 0 && csatValue === 0 ? [
+  const currentSentimentData = totalReviews === 0 ? [
     { name: "No Ingested Logs", value: 100, color: "rgba(156, 163, 175, 0.12)" }
   ] : [
     { name: "Positive Reviews", value: positivePct, color: "#6EE7B7" },
     { name: "Negative Reviews", value: negativePct, color: "#F9A8D4" },
   ];
 
-  // Limpieza absoluta de factores: Mapea únicamente respuestas verídicas de Railway
+  // Mapeo adaptivo y limpio de factores NLP de SQLite
   const processedDrivers = useMemo(() => {
     if (!driversData || !Array.isArray(driversData)) return [];
     return driversData
@@ -146,22 +145,22 @@ export default function Overview() {
       .filter(d => d.value > 0);
   }, [driversData]);
 
-  // Acciones sugeridas dinámicas basadas en el factor real del problema
+  // Acciones operativas sugeridas según taxonomía semántica detectada
   const getActionRecommendation = (factorName: string) => {
     const nameLower = factorName.toLowerCase();
     if (nameLower.includes("comida") || nameLower.includes("food")) {
-      return "Revisar tiempos de cocción, temperaturas en cocina y consistencia de recetas mediante auditorías sorpresa en barra.";
+      return "Audit cooking times, kitchen temperature baselines, and recipe consistency via unannounced station checks.";
     }
     if (nameLower.includes("servicio") || nameLower.includes("service")) {
-      return "Optimizar asignación de mesas en horas pico y reforzar protocolos de amabilidad y tiempos de espera en comandas.";
+      return "Optimize table allocation metrics during peak hours and reinforce floor staff turnaround guidelines.";
     }
     if (nameLower.includes("ambiente") || nameLower.includes("ambiance")) {
-      return "Evaluar niveles de decibelios de la música ambiental y auditar bitácoras de limpieza profunda en el salón.";
+      return "Evaluate ambient music decibel limits and audit deep cleaning shift logs in the main dining area.";
     }
     if (nameLower.includes("precio") || nameLower.includes("price")) {
-      return "Realizar un análisis de competitividad local frente a marcas vecinas y estructurar ofertas de combo de valor.";
+      return "Conduct a hyper-local pricing competitiveness sweep and introduce strategic high-margin bundle choices.";
     }
-    return `Implementar planes de acción operativos focalizados específicamente en mitigar riesgos vinculados a "${factorName}".`;
+    return `Deploy localized operational remediation strategies specifically mapped to mitigate "${factorName}" friction points.`;
   };
 
   if (loading) {
@@ -206,7 +205,7 @@ export default function Overview() {
 
       {/* REPORTE DE TARJETAS SUPERIORES */}
       <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {/* NPS */}
+        {/* NPS CARD */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -222,7 +221,7 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* STARS */}
+        {/* STARS CARD */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -248,7 +247,7 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* VOLUME */}
+        {/* VOLUME CARD */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -264,7 +263,7 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* COGNITIVE COVERAGE */}
+        {/* COGNITIVE COVERAGE CARD */}
         <motion.div variants={item} className="glass-card-hover p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -341,7 +340,7 @@ export default function Overview() {
                   >
                     <div className="mb-1.5 flex items-center justify-between text-sm">
                       <span className="font-medium text-foreground">{d.name}</span>
-                      <span className="font-data text-muted-foreground font-semibold">{d.value} menciones</span>
+                      <span className="font-data text-muted-foreground font-semibold">{d.value} {d.value === 1 ? 'mention' : 'mentions'}</span>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
                       <motion.div
@@ -390,15 +389,15 @@ export default function Overview() {
                     </div>
                     <div>
                       <h4 className="font-display font-semibold text-foreground">{issue.name}</h4>
-                      <p className="font-data text-xs text-negative">{issue.value} registros críticos</p>
+                      <p className="font-data text-xs text-negative">{issue.value} {issue.value === 1 ? 'critical record' : 'critical records'}</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-negative/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-negative">
                     High Impact
                   </span>
                 </div>
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Presión por volumen semántico negativo identificado en la tabla relacional de opiniones bajo la categoría de "{issue.name}".
+                <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
+                  Negative semantic weight identified inside SQLite reviews for the category "{issue.name}". Remediation recommended.
                 </p>
                 <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Suggested Action</p>

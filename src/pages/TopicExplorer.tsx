@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChefHat, Users, Home, DollarSign, Sparkles, Star, Building2, AlertCircle } from "lucide-react";
+import { ChefHat, Users, Home, DollarSign, Sparkles, Star, Building2, AlertCircle, Loader2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,30 +10,31 @@ const factorMetaMap: Record<string, { label: string; icon: any; positiveKeywords
   comida: {
     label: "Food Quality",
     icon: ChefHat,
-    positiveKeywords: ["Sabor", "Presentación", "Porción", "Ingredientes"],
-    negativeKeywords: ["Calidad", "Temperatura", "Cocción", "Sazón"],
+    positiveKeywords: ["sabor", "presentación", "porción", "bueno", "rico", "fresco", "calidad"],
+    negativeKeywords: ["frío", "malo", "salado", "crudo", "sabor", "temperatura", "cocción"],
   },
   servicio: {
     label: "Service Experience",
     icon: Users,
-    positiveKeywords: ["Atención", "Amabilidad", "Rapidez", "Eficiencia"],
-    negativeKeywords: ["Espera", "Trato", "Desorganización", "Demora"],
+    positiveKeywords: ["atención", "amabilidad", "rapidez", "eficiente", "camarero", "personal"],
+    negativeKeywords: ["espera", "trato", "demora", "lento", "grosero", "desorganización"],
   },
   ambiente: {
     label: "Ambiance & Atmosphere",
     icon: Home,
-    positiveKeywords: ["Comodidad", "Decoración", "Música", "Espacio"],
-    negativeKeywords: ["Ruido", "Limpieza", "Mobiliario", "Iluminación"],
+    positiveKeywords: ["comodidad", "decoración", "música", "limpio", "agradable", "espacio"],
+    negativeKeywords: ["ruido", "sucio", "limpieza", "incómodo", "oscuro", "iluminación"],
   },
   precio: {
     label: "Value & Pricing",
     icon: DollarSign,
-    positiveKeywords: ["Costo-Beneficio", "Accesible", "Justo"],
-    negativeKeywords: ["Caro", "Elevado", "Desproporcionado"],
+    positiveKeywords: ["precio", "justo", "accesible", "barato", "económico"],
+    negativeKeywords: ["caro", "costoso", "elevado", "desproporcionado", "cuenta"],
   },
 };
 
 function SentimentGauge({ value }: { value: number }) {
+  // Ajuste matemático de ángulo: 0% -> -90deg, 100% -> 90deg
   const angle = (value / 100) * 180 - 90;
 
   return (
@@ -66,7 +67,7 @@ function SentimentGauge({ value }: { value: number }) {
           strokeLinecap="round"
           initial={{ rotate: -90 }}
           animate={{ rotate: angle }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           style={{
             transformOrigin: "100px 100px",
             transformBox: "view-box",
@@ -79,13 +80,15 @@ function SentimentGauge({ value }: { value: number }) {
           x="100"
           y="122"
           textAnchor="middle"
-          className="font-bold fill-current text-foreground"
+          className="font-bold fill-current text-foreground font-mono"
           style={{ fontSize: "18px" }}
         >
           {value}%
         </text>
       </svg>
-      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">Confidence Score</p>
+      <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        Cluster Health Rate
+      </p>
     </div>
   );
 }
@@ -144,20 +147,28 @@ export function TopicExplorer() {
     syncDataset();
   }, [activeRestaurant]);
 
+  // Análisis matemático real de los clusters provenientes de SQLite
   const processedThemes = useMemo(() => {
     if (!drivers.length) return [];
     
+    // Obtener el total acumulado de menciones críticas para calcular impactos porcentuales verídicos
+    const totalCriticalMentions = drivers.reduce((acc, curr) => acc + Number(curr.negative_reviews || curr.count || 0), 0);
+
     return drivers.map((d: any) => {
       const factorName = d.factor ? d.factor.toLowerCase() : "otros";
       const meta = factorMetaMap[factorName] || {
-        label: `Cluster: ${factorName}`,
+        label: `Cluster: ${d.factor}`,
         icon: Sparkles,
-        positiveKeywords: ["General"],
-        negativeKeywords: ["Review Log"],
+        positiveKeywords: ["general"],
+        negativeKeywords: ["específico"],
       };
 
       const count = Number(d.negative_reviews || d.count || 0);
-      const calculatedSentiment = 50; 
+      
+      // El ratio de salud se calcula de forma inversa al volumen de quejas del driver
+      const calculatedSentiment = totalCriticalMentions > 0 
+        ? Math.max(5, Math.min(95, Math.round(100 - (count / totalCriticalMentions) * 100)))
+        : 70;
 
       return {
         id: d.factor,
@@ -170,25 +181,41 @@ export function TopicExplorer() {
     });
   }, [drivers]);
 
+  // Extracción e indexación semántica genuina de reviews basadas en el Topic
   const activeDeepDive = useMemo(() => {
     const currentThemeObj = processedThemes.find((t) => t.id === selectedTheme);
+    if (!currentThemeObj) return { positive: [], negative: [], reviews: [] };
+
+    const positive = currentThemeObj.meta.positiveKeywords;
+    const negative = currentThemeObj.meta.negativeKeywords;
+
+    // Filtrar reseñas reales cuyo texto contenga de verdad términos relacionados al cluster activo
+    const allKeywords = [...positive, ...negative];
     
-    const positive = currentThemeObj?.meta.positiveKeywords || ["Análisis de Texto"];
-    const negative = currentThemeObj?.meta.negativeKeywords || ["Señales Críticas"];
+    const filteredAndMapped = realReviews
+      .filter((rev: any) => {
+        const textContent = String(rev?.text || "").toLowerCase();
+        return allKeywords.some(keyword => textContent.includes(keyword)) || selectedTheme === "Otros";
+      })
+      .map((rev: any) => {
+        const starsValue = Number(rev?.review_stars || rev?.stars || rev?.rating || 3);
+        const textContent = rev?.text || "No text segment retrieved.";
+        
+        // Detección automática del tag interno que disparó la clasificación
+        const matchedTags = allKeywords.filter(keyword => textContent.toLowerCase().includes(keyword));
 
-    // Aquí forzamos el renderizado ÚNICAMENTE de la base de datos real sin fallbacks
-    const reviewsToShow = realReviews.map((rev: any) => {
-      const starsValue = rev.review_stars || rev.stars || rev.rating || 3;
-      return {
-        stars: starsValue,
-        date: rev.date || "SQLite Log",
-        text: rev.text || "Sin texto disponible.",
-        sentiment: starsValue >= 4 ? ("Positive" as const) : ("Negative" as const),
-        themes: currentThemeObj ? [currentThemeObj.label] : ["General Ingestion"],
-      };
-    });
+        return {
+          stars: starsValue,
+          date: rev?.date || rev?.review_date || "SQL Ledger",
+          text: textContent,
+          sentiment: String(rev?.sentiment_binary).toLowerCase() === "positive" || starsValue >= 4 ? ("Positive" as const) : ("Negative" as const),
+          themes: matchedTags.length > 0 ? matchedTags.slice(0, 2).map(t => t.toUpperCase()) : ["GENERAL MATCH"],
+        };
+      })
+      // Limitar a un plano de 5 registros para evitar sobrecarga del árbol DOM
+      .slice(0, 5);
 
-    return { positive, negative, reviews: reviewsToShow };
+    return { positive, negative, reviews: filteredAndMapped };
   }, [selectedTheme, processedThemes, realReviews]);
 
   const activeSentimentValue = useMemo(() => {
@@ -198,8 +225,9 @@ export function TopicExplorer() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex h-96 items-center justify-center text-xs text-muted-foreground animate-pulse">
-          Recalculating NLP vectors and processing granular text streams from Railway...
+        <div className="flex h-96 flex-col items-center justify-center text-sm text-muted-foreground gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span>Parsing conversational vectors and NLP intersections from Railway...</span>
         </div>
       </DashboardLayout>
     );
@@ -207,6 +235,7 @@ export function TopicExplorer() {
 
   return (
     <DashboardLayout>
+      {/* STATUS BAR */}
       <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm shadow-2xs">
         <div className="flex items-center gap-2.5">
           <div className="bg-primary/10 p-2 rounded-xl text-primary">
@@ -229,20 +258,16 @@ export function TopicExplorer() {
         subtitle="Unpack deep semantic layers of text reviews categorised by proprietary NLP clustering modules."
       />
 
-      {/* LETRERO TEMPORAL PARA COMPROBAR CONEXIÓN LIMPIA */}
-      <div className="bg-green-600 text-white p-2 text-center text-xs font-bold rounded-xl mb-4">
-        ✓ Sincronización exitosa: Mostrando datos reales del SQLite
-      </div>
-
       {processedThemes.length === 0 ? (
-        <div className="glass-card p-8 text-center flex flex-col items-center justify-center gap-3 mb-6">
-          <AlertCircle className="h-8 w-8 text-muted-foreground/60" />
-          <p className="text-xs text-muted-foreground max-w-sm">
-            Cargando clusters semánticos desde la base de datos...
+        <div className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10 mb-6">
+          <AlertCircle className="h-8 w-8 text-muted-foreground/40 mb-2" />
+          <p className="text-sm font-semibold text-foreground">No NLP clusters mapped</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            The active database segment does not contain structured feature drivers for this entity.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           {processedThemes.map((theme) => {
             const Icon = theme.icon;
             const isSelected = selectedTheme === theme.id;
@@ -252,19 +277,19 @@ export function TopicExplorer() {
                 key={theme.id}
                 onClick={() => setSelectedTheme(theme.id)}
                 className={`glass-card p-4 text-left transition-all relative overflow-hidden cursor-pointer ${
-                  isSelected ? "ring-2 ring-primary/50 bg-primary/[0.02]" : "hover:bg-foreground/[0.01]"
+                  isSelected ? "ring-1.5 ring-primary bg-primary/[0.01]" : "hover:bg-foreground/[0.01]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`p-2 rounded-xl ${isSelected ? "bg-primary text-white" : "bg-foreground/[0.04] text-muted-foreground"}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    {theme.mentions} menciones
+                  <span className="text-[11px] font-mono font-bold text-muted-foreground">
+                    {theme.mentions} logs
                   </span>
                 </div>
 
-                <h4 className="text-xs font-semibold text-foreground mb-1">{theme.label}</h4>
+                <h4 className="text-xs font-bold text-foreground mb-1.5 tracking-tight">{theme.label}</h4>
 
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-full bg-foreground/[0.04] rounded-full overflow-hidden">
@@ -272,11 +297,11 @@ export function TopicExplorer() {
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${theme.sentiment}%`,
-                        backgroundColor: "rgb(245, 158, 11)",
+                        backgroundColor: theme.sentiment > 70 ? "rgb(34, 197, 94)" : theme.sentiment > 40 ? "rgb(245, 158, 11)" : "rgb(239, 68, 68)",
                       }}
                     />
                   </div>
-                  <span className="text-[11px] font-bold text-foreground">{theme.sentiment}%</span>
+                  <span className="text-[10px] font-mono font-bold text-foreground">{theme.sentiment}%</span>
                 </div>
               </button>
             );
@@ -286,22 +311,23 @@ export function TopicExplorer() {
 
       {activeDeepDive.reviews.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-3">
+          {/* SECCIÓN IZQUIERDA: DIAGNÓSTICO DEL CLUSTER */}
           <div className="glass-card p-6 flex flex-col justify-between gap-6">
             <div>
               <h3 className="text-sm font-bold text-foreground">Cluster Diagnostics</h3>
-              <p className="text-[11px] text-muted-foreground">Real-time model confidence values</p>
+              <p className="text-[11px] text-muted-foreground">Calculated relational density of active node</p>
             </div>
 
             <SentimentGauge value={activeSentimentValue} />
 
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 block mb-2">
-                  High Frequency Vectors (+)
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block mb-2">
+                  High Frequency Tokens (+)
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.positive.map((w) => (
-                    <span key={w} className="text-[10px] font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-md border border-green-200">
+                    <span key={w} className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-500/10 capitalize">
                       {w}
                     </span>
                   ))}
@@ -309,12 +335,12 @@ export function TopicExplorer() {
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 block mb-2">
-                  Critical Risk Nodes (-)
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block mb-2">
+                  Critical Risk Tokens (-)
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {activeDeepDive.negative.map((w) => (
-                    <span key={w} className="text-[10px] font-medium bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-200">
+                    <span key={w} className="text-[10px] font-semibold bg-rose-500/10 text-rose-700 px-2 py-0.5 rounded-md border border-rose-500/10 capitalize">
                       {w}
                     </span>
                   ))}
@@ -323,47 +349,51 @@ export function TopicExplorer() {
             </div>
           </div>
 
+          {/* SECCIÓN DERECHA: REVIEWS SUBORDINADAS REALES */}
           <div className="glass-card p-6 lg:col-span-2">
-            <h3 className="text-sm font-bold text-foreground mb-4">Granular Text Segmentations</h3>
+            <h3 className="text-sm font-bold text-foreground mb-4">Granular Text Segmentations (Filtered Matrix)</h3>
 
             <div className="space-y-3.5">
-              {activeDeepDive.reviews.map((rev, i) => (
-                <div key={`real-rev-${i}`} className="p-4 rounded-xl border border-foreground/[0.03] bg-foreground/[0.01]/40 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <Star
-                          key={idx}
-                          className={`h-3 w-3 ${idx < rev.stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`}
-                        />
-                      ))}
+              {activeDeepDive.reviews.map((rev, i) => {
+                const isPositive = rev.sentiment === "Positive";
+                const badgeStyle = isPositive 
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/10" 
+                  : "bg-rose-500/10 text-rose-600 border-rose-500/10";
+
+                return (
+                  <div key={`real-rev-${i}`} className="p-4 rounded-xl border border-foreground/[0.03] bg-foreground/[0.01]/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <Star
+                            key={idx}
+                            className={`h-3 w-3 ${idx < rev.stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`}
+                          />
+                        ))}
+                      </div>
+
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${badgeStyle}`}>
+                        {rev.sentiment}
+                      </span>
                     </div>
 
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm ${
-                        rev.sentiment === "Positive"
-                          ? "bg-green-50 text-green-700 border border-green-200"
-                          : "bg-red-50 text-red-700 border border-red-200"
-                      }`}
-                    >
-                      {rev.sentiment}
-                    </span>
-                  </div>
+                    <p className="text-xs text-foreground/80 italic font-medium leading-relaxed">
+                      "{rev.text.replace(/^["']|["']$/g, '')}"
+                    </p>
 
-                  <p className="text-xs text-foreground/90 italic">"{rev.text}"</p>
-
-                  <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1 border-t border-foreground/[0.02]">
-                    <div className="flex gap-1">
-                      {rev.themes.map((t) => (
-                        <span key={t} className="bg-foreground/[0.04] px-1.5 py-0.5 rounded-sm">
-                          {t}
-                        </span>
-                      ))}
+                    <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-2 border-t border-foreground/[0.02]">
+                      <div className="flex flex-wrap gap-1">
+                        {rev.themes.map((t) => (
+                          <span key={t} className="bg-primary/10 text-primary font-mono text-[9px] px-1.5 py-0.5 rounded-sm font-bold">
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="font-mono text-[9px]">{rev.date}</span>
                     </div>
-                    <span>{rev.date}</span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -372,5 +402,4 @@ export function TopicExplorer() {
   );
 }
 
-// SOLUCIÓN AL INPUT DE LA CONSOLA: Exportación por defecto obligatoria para Vite
 export default TopicExplorer;

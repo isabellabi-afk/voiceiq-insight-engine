@@ -24,6 +24,7 @@ import { GlassTooltip } from "@/components/GlassTooltip";
 import { getOverviewData } from "../apiService";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
+
 const item = {
   hidden: { opacity: 0, y: 24 },
   show: {
@@ -35,7 +36,7 @@ const item = {
 
 const sentimentColors = {
   positive: "#6EE7B7",
-  negative: "#F9A8D4",
+  other: "#F9A8D4",
 };
 
 function formatNumber(value: number | null | undefined) {
@@ -66,7 +67,14 @@ function ProgressRing({ value }: { value: number | null }) {
 
   return (
     <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
-      <circle cx="36" cy="36" r={r} stroke="rgba(31,41,55,0.08)" strokeWidth="6" fill="none" />
+      <circle
+        cx="36"
+        cy="36"
+        r={r}
+        stroke="rgba(31,41,55,0.08)"
+        strokeWidth="6"
+        fill="none"
+      />
       <circle
         cx="36"
         cy="36"
@@ -106,11 +114,9 @@ export default function Overview() {
   }, []);
 
   const metrics = useMemo(() => {
-    const nps =
-      typeof backendData?.nps === "number" ? backendData.nps : null;
+    const nps = typeof backendData?.nps === "number" ? backendData.nps : null;
 
-    const csat =
-      typeof backendData?.csat === "number" ? backendData.csat : null;
+    const csat = typeof backendData?.csat === "number" ? backendData.csat : null;
 
     const totalReviews =
       typeof backendData?.total_reviews === "number"
@@ -122,8 +128,7 @@ export default function Overview() {
         ? backendData.positive_pct
         : null;
 
-    const negativePct =
-      positivePct !== null ? Math.max(0, 100 - positivePct) : null;
+    const otherPct = positivePct !== null ? Math.max(0, 100 - positivePct) : null;
 
     const sentimentData =
       positivePct !== null
@@ -134,9 +139,9 @@ export default function Overview() {
               color: sentimentColors.positive,
             },
             {
-              name: "Negative / Neutral",
-              value: Math.round(negativePct ?? 0),
-              color: sentimentColors.negative,
+              name: "Other",
+              value: Math.round(otherPct ?? 0),
+              color: sentimentColors.other,
             },
           ]
         : [];
@@ -204,6 +209,7 @@ export default function Overview() {
                 Based on API sentiment data
               </p>
             </div>
+
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-positive/15">
               <Activity className="h-4 w-4 text-positive" />
             </div>
@@ -236,14 +242,19 @@ export default function Overview() {
               <p className="text-xs font-medium text-muted-foreground">
                 Customer Satisfaction
               </p>
+
               <p className="mt-2 font-data text-4xl font-bold text-foreground">
                 {metrics.csat !== null ? metrics.csat : "N/A"}
-                <span className="text-2xl text-muted-foreground">/5</span>
+                {metrics.csat !== null && (
+                  <span className="text-2xl text-muted-foreground">/5</span>
+                )}
               </p>
+
               <p className="mt-1 text-xs text-muted-foreground">
                 Based on {formatNumber(metrics.totalReviews)} reviews
               </p>
             </div>
+
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
               <Star className="h-4 w-4 text-warning" />
             </div>
@@ -276,6 +287,7 @@ export default function Overview() {
                 Awaiting time-series API data
               </p>
             </div>
+
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15">
               <MessageSquare className="h-4 w-4 text-warning" />
             </div>
@@ -315,6 +327,7 @@ export default function Overview() {
                 From API sentiment score
               </p>
             </div>
+
             <ProgressRing value={metrics.positivePct} />
           </div>
         </motion.div>
@@ -457,11 +470,13 @@ export default function Overview() {
                 <h4 className="font-display font-semibold text-foreground">
                   {issue.title}
                 </h4>
+
                 {issue.detail && (
                   <p className="mt-4 text-xs text-muted-foreground">
                     {issue.detail}
                   </p>
                 )}
+
                 {issue.action && (
                   <div className="mt-3 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">

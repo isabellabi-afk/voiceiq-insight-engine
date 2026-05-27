@@ -25,8 +25,26 @@ const iconMap: Record<string, any> = {
   clean: Sparkles,
 };
 
-function SentimentGauge({ value }: { value: number }) {
-  const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
+function isValidNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function formatNumber(value: unknown) {
+  if (!isValidNumber(value)) return "N/A";
+  return Number(value).toLocaleString();
+}
+
+function formatPercent(value: unknown) {
+  if (!isValidNumber(value)) return "N/A";
+  return `${Math.round(Number(value))}%`;
+}
+
+function SentimentGauge({ value }: { value: number | null }) {
+  const safeValue =
+    value === null || Number.isNaN(Number(value))
+      ? 0
+      : Math.max(0, Math.min(100, Number(value)));
+
   const angle = (safeValue / 100) * 180 - 90;
 
   return (
@@ -67,7 +85,7 @@ function SentimentGauge({ value }: { value: number }) {
           className="font-data fill-foreground"
           style={{ fontSize: "18px", fontWeight: 700 }}
         >
-          {safeValue}%
+          {value === null ? "N/A" : `${safeValue}%`}
         </text>
       </svg>
       <p className="-mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -77,8 +95,11 @@ function SentimentGauge({ value }: { value: number }) {
   );
 }
 
-function StarRow({ count }: { count: number }) {
-  const safeCount = Math.max(0, Math.min(5, Number(count) || 0));
+function StarRow({ count }: { count: number | null }) {
+  const safeCount =
+    count === null || Number.isNaN(Number(count))
+      ? 0
+      : Math.max(0, Math.min(5, Number(count)));
 
   return (
     <div className="flex gap-0.5">
@@ -118,7 +139,7 @@ export default function TopicExplorer() {
         setDeepDiveData(apiDeepDive);
 
         if (apiThemes.length > 0) {
-          setSelected(apiThemes[0].id);
+          setSelected(apiThemes[0].id || "");
         }
       })
       .catch((error) => {
@@ -181,15 +202,17 @@ export default function TopicExplorer() {
             </h3>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {themes.map((theme: any) => {
+              {themes.map((theme: any, index: number) => {
+                const themeId = theme.id || `theme-${index}`;
                 const active = selected === theme.id;
                 const IconComponent = iconMap[theme.id] || Sparkles;
-                const sentiment = Number(theme.sentiment ?? 0);
-                const mentions = Number(theme.mentions ?? 0);
+                const sentiment = isValidNumber(theme.sentiment)
+                  ? Number(theme.sentiment)
+                  : null;
 
                 return (
                   <button
-                    key={theme.id}
+                    key={themeId}
                     onClick={() => setSelected(theme.id)}
                     className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                       active
@@ -210,14 +233,16 @@ export default function TopicExplorer() {
 
                       <span
                         className={`font-data text-xs font-semibold ${
-                          sentiment >= 70
-                            ? "text-positive"
-                            : sentiment >= 50
-                              ? "text-warning"
-                              : "text-negative"
+                          sentiment === null
+                            ? "text-muted-foreground"
+                            : sentiment >= 70
+                              ? "text-positive"
+                              : sentiment >= 50
+                                ? "text-warning"
+                                : "text-negative"
                         }`}
                       >
-                        {sentiment}%
+                        {formatPercent(sentiment)}
                       </span>
                     </div>
 
@@ -225,7 +250,7 @@ export default function TopicExplorer() {
                       {theme.label || theme.name || "Untitled theme"}
                     </p>
                     <p className="mt-1 font-data text-xs text-muted-foreground">
-                      {mentions.toLocaleString()} mentions
+                      {formatNumber(theme.mentions)} mentions
                     </p>
                   </button>
                 );
@@ -251,10 +276,16 @@ export default function TopicExplorer() {
                           Theme Deep Dive
                         </p>
                         <h3 className="mt-1 font-display text-2xl font-bold">
-                          {current.label || current.name}
+                          {current.label || current.name || "Untitled theme"}
                         </h3>
                       </div>
-                      <SentimentGauge value={Number(current.sentiment ?? 0)} />
+                      <SentimentGauge
+                        value={
+                          isValidNumber(current.sentiment)
+                            ? Number(current.sentiment)
+                            : null
+                        }
+                      />
                     </div>
 
                     <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/5 pt-4">
@@ -263,7 +294,7 @@ export default function TopicExplorer() {
                           Mentions
                         </p>
                         <p className="font-data text-lg font-bold text-foreground">
-                          {Number(current.mentions ?? 0).toLocaleString()}
+                          {formatNumber(current.mentions)}
                         </p>
                       </div>
                       <div>
@@ -271,7 +302,7 @@ export default function TopicExplorer() {
                           Positive
                         </p>
                         <p className="font-data text-lg font-bold text-positive">
-                          {Number(current.positive_mentions ?? 0).toLocaleString()}
+                          {formatNumber(current.positive_mentions)}
                         </p>
                       </div>
                       <div>
@@ -279,7 +310,7 @@ export default function TopicExplorer() {
                           Negative
                         </p>
                         <p className="font-data text-lg font-bold text-negative">
-                          {Number(current.negative_mentions ?? 0).toLocaleString()}
+                          {formatNumber(current.negative_mentions)}
                         </p>
                       </div>
                     </div>
@@ -348,15 +379,26 @@ export default function TopicExplorer() {
                           >
                             <div className="mb-2 flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <StarRow count={Number(review.stars ?? review.review_stars ?? 0)} />
+                                <StarRow
+                                  count={
+                                    isValidNumber(review.stars)
+                                      ? Number(review.stars)
+                                      : isValidNumber(review.review_stars)
+                                        ? Number(review.review_stars)
+                                        : null
+                                  }
+                                />
                                 <span className="text-xs text-muted-foreground">
-                                  {review.date ? String(review.date).slice(0, 10) : "N/A"}
+                                  {review.date
+                                    ? String(review.date).slice(0, 10)
+                                    : "N/A"}
                                 </span>
                               </div>
 
                               <span
                                 className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                  String(review.sentiment).toLowerCase() === "positive"
+                                  String(review.sentiment).toLowerCase() ===
+                                  "positive"
                                     ? "bg-positive/15 text-positive"
                                     : "bg-negative/15 text-negative"
                                 }`}
@@ -371,19 +413,21 @@ export default function TopicExplorer() {
 
                             <div className="mt-3 flex items-center justify-between">
                               <div className="flex flex-wrap gap-1.5">
-                                {(review.themes || []).map((theme: string) => (
-                                  <span
-                                    key={theme}
-                                    className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
-                                  >
-                                    {theme}
-                                  </span>
-                                ))}
+                                {Array.isArray(review.themes) &&
+                                  review.themes.map((theme: string) => (
+                                    <span
+                                      key={theme}
+                                      className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                                    >
+                                      {theme}
+                                    </span>
+                                  ))}
                               </div>
 
                               {review.helpful !== undefined && (
                                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <ThumbsUp className="h-3 w-3" /> {review.helpful}
+                                  <ThumbsUp className="h-3 w-3" />{" "}
+                                  {review.helpful}
                                 </span>
                               )}
                             </div>

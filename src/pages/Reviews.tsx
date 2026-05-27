@@ -1,204 +1,237 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Star, MessageSquare, Building2, Inbox, Loader2 } from "lucide-react";
+import { Search, Star, Filter, MessageSquare } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getReviewsByRestaurant } from "@/apiService";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getReviews, type Review } from "../apiService";
+
+const PAGE_SIZE = 25;
 
 export default function Reviews() {
-  const [activeRestaurant, setActiveRestaurant] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [sentiment, setSentiment] = useState<string>("all");
+  const [city, setCity] = useState<string>("all");
+  const [stars, setStars] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const syncRestaurantSession = () => {
-      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
-      setActiveRestaurant(saved);
-    };
-    syncRestaurantSession();
-    window.addEventListener("restaurantChanged", syncRestaurantSession);
-    window.addEventListener("storage", syncRestaurantSession);
-    return () => {
-      window.removeEventListener("restaurantChanged", syncRestaurantSession);
-      window.removeEventListener("storage", syncRestaurantSession);
-    };
+    getReviews().then((data) => {
+      setReviews(data);
+      setLoading(false);
+    });
   }, []);
 
-  useEffect(() => {
-    async function loadReviews() {
-      try {
-        setLoading(true);
-        const data = await getReviewsByRestaurant(activeRestaurant);
-        if (data && Array.isArray(data)) {
-          setReviews(data);
-        } else {
-          setReviews([]);
-        }
-      } catch (err) {
-        console.error("Error loading reviews:", err);
-        setReviews([]);
-      } finally {
-        setLoading(false);
+  const cities = useMemo(
+    () => Array.from(new Set(reviews.map((r) => r.city).filter(Boolean))).sort(),
+    [reviews],
+  );
+
+  const filtered = useMemo(() => {
+    return reviews.filter((r) => {
+      if (sentiment !== "all" && r.sentiment_binary !== sentiment) return false;
+      if (city !== "all" && r.city !== city) return false;
+      if (stars !== "all" && Math.round(r.review_stars) !== Number(stars)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (
+          !r.business_name?.toLowerCase().includes(q) &&
+          !r.text?.toLowerCase().includes(q)
+        )
+          return false;
       }
-    }
-    loadReviews();
-  }, [activeRestaurant]);
-
-  const normalizedReviews = useMemo(() => {
-    return reviews.map((r: any, i) => ({
-      id: r?.review_id || r?.id || `review-${i}`,
-      business_name: r?.business_name || r?.restaurant_name || "Active Brand Entity",
-      city: r?.city || r?.location || "N/A",
-      text: r?.text || r?.comment || "No text log provided for this record.",
-      review_stars: r?.review_stars !== undefined ? Number(r.review_stars) : r?.stars !== undefined ? Number(r.stars) : 0,
-      date: r?.date || r?.review_date || "Recent Date",
-      sentiment_binary: r?.sentiment_binary || r?.sentiment || "Neutral",
-    }));
-  }, [reviews]);
-
-  const filteredReviews = useMemo(() => {
-    return normalizedReviews.filter((r) => {
-      const search = searchTerm.toLowerCase();
-
-      const matchesRestaurant =
-        activeRestaurant === "all" ||
-        activeRestaurant === "" ||
-        r.business_name.toLowerCase().includes(activeRestaurant.toLowerCase()) ||
-        activeRestaurant.toLowerCase().includes(r.business_name.toLowerCase());
-
-      const matchesSearch = 
-        r.text.toLowerCase().includes(search) || 
-        r.business_name.toLowerCase().includes(search);
-
-      const matchesRating = 
-        ratingFilter === "all" || 
-        String(Math.round(r.review_stars)) === ratingFilter;
-
-      return matchesRestaurant && matchesSearch && matchesRating;
+      return true;
     });
-  }, [normalizedReviews, activeRestaurant, searchTerm, ratingFilter]);
+  }, [reviews, sentiment, city, stars, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sentiment, city, stars]);
+
+  const sentimentBadge = (s: string) => {
+    if (s === "positive")
+      return "bg-positive/15 text-positive";
+    if (s === "negative") return "bg-negative/15 text-negative";
+    return "bg-warning/15 text-warning";
+  };
 
   return (
     <DashboardLayout>
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-primary/10 p-2 rounded-xl text-primary">
-            <Building2 className="h-4 w-4" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Review Data Pipeline
-            </span>
-            <h3 className="text-sm font-semibold text-foreground">
-              {activeRestaurant === "all" ? "Global Feedback Streams" : `Isolated Feed: ${activeRestaurant}`}
-            </h3>
-          </div>
-        </div>
-      </div>
-
       <PageHeader
-        eyebrow="Feedback"
-        title="Customer Reviews Log"
-        subtitle={`Filtered review stream for ${activeRestaurant === "all" ? "all restaurants" : activeRestaurant}.`}
+        eyebrow="Reviews"
+        title="Review Explorer"
+        subtitle="Browse, filter and analyze every customer review from the live dataset."
       />
 
-      <div className="glass-card mb-6 flex flex-wrap items-center justify-between gap-4 p-4">
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search dataset logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-foreground/[0.08] bg-white/50 py-1.5 pr-4 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card mb-6 p-4"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search business or review text…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-full border-white/60 bg-white/50 pl-9 backdrop-blur-xl"
             />
           </div>
 
-          <select
-            value={ratingFilter}
-            onChange={(e) => setRatingFilter(e.target.value)}
-            className="rounded-lg border border-foreground/[0.08] bg-white/50 px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer"
-          >
-            <option value="all">All Ratings</option>
-            <option value="5">5 Stars</option>
-            <option value="4">4 Stars</option>
-            <option value="3">3 Stars</option>
-            <option value="2">2 Stars</option>
-            <option value="1">1 Star</option>
-          </select>
+          <Select value={sentiment} onValueChange={setSentiment}>
+            <SelectTrigger className="w-[160px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
+              <SelectValue placeholder="Sentiment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sentiment</SelectItem>
+              <SelectItem value="positive">Positive</SelectItem>
+              <SelectItem value="negative">Negative</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={stars} onValueChange={setStars}>
+            <SelectTrigger className="w-[140px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
+              <SelectValue placeholder="Stars" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All stars</SelectItem>
+              {[5, 4, 3, 2, 1].map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  {s} stars
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={city} onValueChange={setCity}>
+            <SelectTrigger className="w-[180px] rounded-full border-white/60 bg-white/50 backdrop-blur-xl">
+              <SelectValue placeholder="City" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">All cities</SelectItem>
+              {cities.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" />
+            {loading ? "Loading…" : `${filtered.length.toLocaleString()} of ${reviews.length.toLocaleString()} reviews`}
+          </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="space-y-4">
-        {loading ? (
-          <div className="glass-card p-12 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span>Loading reviews...</span>
-          </div>
-        ) : filteredReviews.length === 0 ? (
-          <div className="glass-card p-12 text-center flex flex-col items-center justify-center border-dashed border-2 border-foreground/10">
-            <Inbox className="h-6 w-6 text-muted-foreground/40 mb-2" />
-            <p className="text-sm font-semibold text-foreground">No matching review structures</p>
-          </div>
-        ) : (
-          filteredReviews.map((r, i) => {
-            const isPositive = String(r.sentiment_binary).toLowerCase() === "positive";
-            const badgeClass = isPositive 
-              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-              : "bg-rose-500/10 text-rose-600 border-rose-500/20";
-
-            return (
-              <motion.div
-                key={`${r.id}-${i}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="glass-card p-5 hover:shadow-xs transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-foreground tracking-tight">{r.business_name}</span>
-                      <span className="text-[10px] text-muted-foreground font-semibold bg-foreground/[0.04] px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                        📍 {r.city}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 5 }).map((_, idx) => (
-                          <Star
-                            key={idx}
-                            className={`h-3 w-3 ${idx < Math.round(r.review_stars) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/10"}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground font-mono">{r.date}</span>
-                    </div>
-                  </div>
-
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${badgeClass}`}>
+      {/* Table */}
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-white/40 hover:bg-transparent">
+              <TableHead>Business</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead className="w-[100px]">Stars</TableHead>
+              <TableHead className="w-[120px]">Sentiment</TableHead>
+              <TableHead>Review</TableHead>
+              <TableHead className="w-[120px]">Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  Loading reviews…
+                </TableCell>
+              </TableRow>
+            )}
+            {!loading && pageData.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  <MessageSquare className="mx-auto mb-2 h-5 w-5 opacity-50" />
+                  No reviews match these filters.
+                </TableCell>
+              </TableRow>
+            )}
+            {pageData.map((r) => (
+              <TableRow key={r.review_id} className="border-white/40">
+                <TableCell className="font-medium text-foreground">{r.business_name}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {r.city}, {r.state}
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 font-data text-sm">
+                    <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+                    {r.review_stars}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${sentimentBadge(
+                      r.sentiment_binary,
+                    )}`}
+                  >
                     {r.sentiment_binary}
                   </span>
-                </div>
+                </TableCell>
+                <TableCell className="max-w-[500px] text-sm text-foreground/80">
+                  <p className="line-clamp-2">{r.text}</p>
+                </TableCell>
+                <TableCell className="font-data text-xs text-muted-foreground">
+                  {r.date?.slice(0, 10)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
 
-                <p className="mt-3.5 text-xs text-foreground/80 leading-relaxed font-medium italic">"{r.text}"</p>
-
-                <div className="mt-4 flex items-center justify-between border-t border-foreground/[0.03] pt-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1 font-medium">
-                    <MessageSquare className="h-3 w-3 text-primary" />
-                    <span>Processed NLP Log</span>
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })
+        {/* Pagination */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center justify-between border-t border-white/40 px-4 py-3 text-xs text-muted-foreground">
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
-

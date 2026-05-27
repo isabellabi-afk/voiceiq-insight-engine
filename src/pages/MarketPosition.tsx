@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Star,
@@ -8,280 +8,325 @@ import {
   Zap,
   AlertOctagon,
   Eye,
-  ArrowUpRight,
   CheckCircle2,
-  Building2,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getOverviewData, getRestaurantKPIs, getTopProblemDrivers } from "../apiService";
+import { getTopicData } from "../apiService";
 
-type Quadrant = {
-  title: string;
-  subtitle: string;
-  icon: typeof Trophy;
-  tone: "positive" | "warning" | "negative" | "muted";
-  items: { name: string; meta: string; recommendation: string; impact?: string }[];
+const toneStyles = {
+  positive: {
+    border: "border-positive/30",
+    chip: "bg-positive/15 text-positive",
+    icon: "text-positive",
+    bar: "gradient-positive",
+  },
+  warning: {
+    border: "border-warning/30",
+    chip: "bg-warning/15 text-warning",
+    icon: "text-warning",
+    bar: "gradient-warning",
+  },
+  negative: {
+    border: "border-negative/30",
+    chip: "bg-negative/15 text-negative",
+    icon: "text-negative",
+    bar: "gradient-negative",
+  },
+  muted: {
+    border: "border-white/10",
+    chip: "bg-white/10 text-muted-foreground",
+    icon: "text-muted-foreground",
+    bar: "bg-muted",
+  },
 };
 
-const toneStyles: Record<Quadrant["tone"], { border: string; chip: string; icon: string; bar: string }> = {
-  positive: { border: "border-positive/30", chip: "bg-positive/15 text-positive", icon: "text-positive", bar: "gradient-positive" },
-  warning: { border: "border-warning/30", chip: "bg-warning/15 text-warning", icon: "text-warning", bar: "gradient-warning" },
-  negative: { border: "border-negative/30", chip: "bg-negative/15 text-negative", icon: "text-negative", bar: "gradient-negative" },
-  muted: { border: "border-white/10", chip: "bg-white/10 text-muted-foreground", icon: "text-muted-foreground", bar: "bg-muted" },
-};
+const emptyCards = [
+  {
+    title: "Market Standing",
+    icon: Trophy,
+    rows: [
+      { label: "Your rating", value: "N/A" },
+      { label: "Category avg", value: "N/A" },
+      { label: "Percentile", value: "N/A" },
+    ],
+  },
+  {
+    title: "Share of Voice",
+    icon: Megaphone,
+    rows: [
+      { label: "Your mentions", value: "N/A" },
+      { label: "Category total", value: "N/A" },
+      { label: "Share", value: "N/A" },
+    ],
+  },
+  {
+    title: "Sentiment vs Competition",
+    icon: TrendingUp,
+    rows: [
+      { label: "Your NPS", value: "N/A" },
+      { label: "Competitor avg", value: "N/A" },
+      { label: "Category avg", value: "N/A" },
+    ],
+  },
+];
+
+const quadrants = [
+  {
+    title: "Strengths to Leverage",
+    subtitle: "High volume × High sentiment",
+    icon: Trophy,
+    tone: "positive" as const,
+    emptyText: "No strengths available yet.",
+  },
+  {
+    title: "Quick Wins",
+    subtitle: "Low volume × High sentiment",
+    icon: Zap,
+    tone: "warning" as const,
+    emptyText: "No quick wins available yet.",
+  },
+  {
+    title: "Critical Issues",
+    subtitle: "High volume × Low sentiment",
+    icon: AlertOctagon,
+    tone: "negative" as const,
+    emptyText: "No critical issues available yet.",
+  },
+  {
+    title: "Monitor",
+    subtitle: "Low volume × Mixed sentiment",
+    icon: Eye,
+    tone: "muted" as const,
+    emptyText: "No monitored topics available yet.",
+  },
+];
 
 export default function MarketPosition() {
-  const [activeRestaurant, setActiveRestaurant] = useState<string>(() => {
-    return localStorage.getItem("selected_yelp_restaurant") || "all";
-  });
-  const [globalData, setGlobalData] = useState<any>(null);
-  const [activeKPIs, setActiveKPIs] = useState<any>(null);
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const [intelligence, setIntelligence] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Escuchar activamente los cambios de estado global
   useEffect(() => {
-    const checkBrand = () => {
-      const saved = localStorage.getItem("selected_yelp_restaurant") || "all";
-      setActiveRestaurant(saved);
-    };
-    window.addEventListener("storage", checkBrand);
-    window.addEventListener("restaurantChanged", checkBrand);
-    return () => {
-      window.removeEventListener("storage", checkBrand);
-      window.removeEventListener("restaurantChanged", checkBrand);
-    };
+    getTopicData()
+      .then((data) => setIntelligence(data))
+      .catch((error) => {
+        console.error("Error loading Web Intelligence data:", error);
+        setIntelligence(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  // 2. Consulta y consumo real de endpoints database
-  useEffect(() => {
-    async function loadMarketPositionMetrics() {
-      setLoading(true);
-      try {
-        const overview = await getOverviewData();
-        if (overview) setGlobalData(overview);
+  const cards = intelligence?.market_position_cards || emptyCards;
+  const matrix = intelligence?.strengths_weaknesses_matrix || {};
+  const actionPlan = Array.isArray(intelligence?.action_plan)
+    ? intelligence.action_plan
+    : [];
 
-        const driversRes = await getTopProblemDrivers(activeRestaurant);
-        setDrivers(driversRes?.top_problem_drivers || []);
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex h-96 items-center justify-center text-sm text-muted-foreground">
+          Loading Web Intelligence data...
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-        if (activeRestaurant !== "all") {
-          const kpis = await getRestaurantKPIs(activeRestaurant);
-          setActiveKPIs(kpis);
-        } else {
-          setActiveKPIs(null);
-        }
-      } catch (err) {
-        console.error("Error connecting matrix with API logs:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadMarketPositionMetrics();
-  }, [activeRestaurant]);
-
-  // --- PROCESAMIENTO ANALÍTICO REAL ---
-  const isGlobal = activeRestaurant === "all";
-  const displayName = isGlobal ? "Global Portfolio" : activeRestaurant;
-
-  const currentMetrics = isGlobal ? globalData : (activeKPIs?.metrics || activeKPIs);
-  
-  const totalReviews = currentMetrics?.total_reviews || 0;
-  const ratingValue = currentMetrics?.avg_stars ? currentMetrics.avg_stars.toFixed(1) : "0.0";
-  
-  const positiveCount = currentMetrics?.positive_reviews || currentMetrics?.positive_count || 0;
-  const positivePct = totalReviews > 0 ? Math.round((positiveCount / totalReviews) * 100) : 0;
-  const negativePct = totalReviews > 0 ? 100 - positivePct : 0;
-  const calculatedNps = positivePct - negativePct;
-
-  // Global Share calculations
-  const globalTotalReviews = globalData?.total_reviews || 1;
-  const shareOfVoice = isGlobal ? "100%" : `${Math.min(Number(((totalReviews / globalTotalReviews) * 100).toFixed(1)), 100)}%`;
-
-  const compCards = [
-    {
-      title: "Market Standing",
-      icon: Trophy,
-      rows: [
-        { label: isGlobal ? "Average System Rating" : "Your Location Rating", value: `${ratingValue} ★`, tone: "positive" },
-        { label: "Dataset Network Baseline", value: "3.9 ★" },
-        { label: "Performance Status", value: Number(ratingValue) >= 4.0 ? "Outperforming" : "Awaiting Optimization", tone: "positive" },
-      ],
-    },
-    {
-      title: "Share of Voice",
-      icon: Megaphone,
-      rows: [
-        { label: isGlobal ? "Total Network Volume" : "Your Unit Volume", value: totalReviews.toLocaleString() },
-        { label: "Total Database Ingested", value: globalTotalReviews.toLocaleString() },
-        { label: "Market Volume Share", value: shareOfVoice, tone: "positive" },
-      ],
-    },
-    {
-      title: "Calculated Sentiment",
-      icon: TrendingUp,
-      rows: [
-        { label: isGlobal ? "Network Core NPS" : "Your Location NPS", value: totalReviews > 0 ? `${calculatedNps >= 0 ? "+" : ""}${calculatedNps}` : "N/A", tone: "positive" },
-        { label: "Network Average Baseline", value: "+35" },
-        { label: "Target Safe Threshold", value: "+40" },
-      ],
-    },
-  ];
-
-  // --- ARQUITECTURA DE MATRIZ 2x2 BASADA EN DRIVERS REALES ---
-  const matrix: Quadrant[] = useMemo(() => {
-    // Clasificamos las quejas de NLP reales extraídas de database de forma dinámica
-    const criticalIssues = drivers.map(d => ({
-      name: `Risk detected: ${d.factor.charAt(0).toUpperCase() + d.factor.slice(1)}`,
-      meta: `${d.negative_reviews || d.count || 0} explicit negative logs found in database`,
-      recommendation: `Deploy corrective audits to protect local sentiment and stop NPS leakage.`
-    }));
-
-    return [
-      {
-        title: "Strengths to Leverage",
-        subtitle: "High customer satisfaction indicators",
-        icon: Trophy,
-        tone: "positive",
-        items: [
-          { 
-            name: "Core Positive Sentiment Retention", 
-            meta: `${positivePct}% of customers left positive logs`, 
-            recommendation: "Maintain standards and showcase highlights on marketing assets." 
-          }
-        ],
-      },
-      {
-        title: "Quick Wins",
-        subtitle: "Healthy performance markers",
-        icon: Zap,
-        tone: "warning",
-        items: [
-          { 
-            name: "Rating Index Stabilization", 
-            meta: `Operating at ${ratingValue} stars`, 
-            recommendation: "Convert positive mentions into loyalty campaigns." 
-          },
-        ],
-      },
-      {
-        title: "Critical Risks",
-        subtitle: "Areas requiring urgent operation interventions",
-        icon: AlertOctagon,
-        tone: "negative",
-        items: criticalIssues.length > 0 ? criticalIssues : [
-          {
-            name: "Friction Point Analysis",
-            meta: `${negativePct}% critical volume ratio registered`,
-            recommendation: "Monitor text stream patterns in Topic Explorer immediately."
-          }
-        ],
-      },
-      {
-        title: "Strategic Trajectory",
-        subtitle: "Long-term brand positioning markers",
-        icon: Eye,
-        tone: "muted",
-        items: [
-          {
-            name: "Market Voice Share",
-            meta: `Sustaining a ${shareOfVoice} regional presence`,
-            recommendation: "Evaluate competitor volume trends monthly."
-          }
-        ],
-      }
-    ];
-  }, [drivers, positivePct, negativePct, ratingValue, shareOfVoice]);
-
-  // --- RETORNO DEL COMPONENTE JSX DE TU DISEÑO ORIGINAL ---
   return (
     <DashboardLayout>
-      <div className="mb-4 flex items-center justify-between bg-white/40 border border-foreground/[0.04] p-4 rounded-2xl backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-primary/10 p-2 rounded-xl text-primary">
-            <Building2 className="h-4 w-4" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Market Intelligence Matrix
-            </span>
-            <h3 className="text-sm font-semibold text-foreground">
-              {isGlobal ? "Macro Entity Mapping" : `Market Position: ${displayName}`}
-            </h3>
-          </div>
-        </div>
-      </div>
-
       <PageHeader
-        eyebrow="Positioning"
-        title="Market Competitive Position"
-        subtitle="Compare your brand value and operational markers against peer entities across regional datasets."
+        eyebrow="Intelligence"
+        title="See How Customers Perceive Your Restaurant"
+        subtitle="This page is ready for Web Intelligence insights once the API provides market perception, strengths, weaknesses, and action plan data."
       />
 
-      {/* Grid Superior de KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
-        {compCards.map((card, i) => {
-          const Icon = card.icon;
+      <div className="grid gap-4 lg:grid-cols-3">
+        {cards.map((card: any, i: number) => {
+          const Icon = card.icon || emptyCards[i]?.icon || Trophy;
+
           return (
-            <div key={i} className="glass-card p-5">
-              <div className="flex items-center gap-2 mb-4 text-muted-foreground">
-                <Icon className="h-4 w-4 text-primary" />
-                <h4 className="text-xs font-bold text-foreground tracking-tight">{card.title}</h4>
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="glass-card-hover p-5"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-display text-base font-semibold">
+                  {card.title}
+                </h3>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
               </div>
-              <div className="space-y-3">
-                {card.rows.map((row, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs pb-2 border-b border-foreground/[0.02] last:border-0 last:pb-0">
+
+              <div className="space-y-2.5">
+                {(card.rows || []).map((row: any) => (
+                  <div
+                    key={row.label}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span className="text-muted-foreground">{row.label}</span>
-                    <span className="font-mono font-bold text-foreground">{row.value}</span>
+                    <span className="font-data font-semibold text-foreground">
+                      {row.value ?? "N/A"}
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Matriz 2x2 */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {matrix.map((quadrant, i) => {
-          const Icon = quadrant.icon;
-          const styles = toneStyles[quadrant.tone];
-          return (
-            <div key={i} className={`glass-card p-5 border ${styles.border} flex flex-col justify-between gap-4`}>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Icon className={`h-4 w-4 ${styles.icon}`} />
-                    <h4 className="text-xs font-bold text-foreground tracking-tight">{quadrant.title}</h4>
+      <div className="mt-10">
+        <h2 className="font-display text-xl font-bold">
+          Strengths & Weaknesses Matrix
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          A 2×2 view of customer themes by volume and sentiment.
+        </p>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {quadrants.map((q, i) => {
+            const style = toneStyles[q.tone];
+            const Icon = q.icon;
+            const items = Array.isArray(matrix[q.tone]) ? matrix[q.tone] : [];
+
+            return (
+              <motion.div
+                key={q.title}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.08 }}
+                className={`glass-card relative overflow-hidden p-5 ${style.border}`}
+              >
+                <div className={`absolute inset-x-0 top-0 h-1 ${style.bar}`} />
+
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <h3 className="font-display text-lg font-bold">
+                      {q.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {q.subtitle}
+                    </p>
                   </div>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${styles.chip}`}>
-                    {quadrant.tone}
-                  </span>
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 ${style.icon}`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground mb-4">{quadrant.subtitle}</p>
-                <div className="space-y-3">
-                  {quadrant.items.map((item, idx) => (
-                    <div key={idx} className="bg-white/60 p-3 rounded-xl border border-foreground/[0.02] space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground tracking-tight">{item.name}</span>
-                        <ArrowUpRight className="h-3 w-3 text-muted-foreground/50" />
+
+                {items.length > 0 ? (
+                  <div className="space-y-3">
+                    {items.map((item: any, index: number) => (
+                      <div
+                        key={item.name || index}
+                        className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">
+                            {item.name}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.chip}`}
+                          >
+                            {q.title}
+                          </span>
+                        </div>
+
+                        {item.meta && (
+                          <p className="mt-0.5 font-data text-[11px] text-muted-foreground">
+                            {item.meta}
+                          </p>
+                        )}
+
+                        {item.impact && (
+                          <p className="mt-1.5 text-xs text-negative">
+                            Impact: {item.impact}
+                          </p>
+                        )}
+
+                        {item.recommendation && (
+                          <p className="mt-2 text-xs text-foreground/80">
+                            <span className="font-semibold text-primary">
+                              →
+                            </span>{" "}
+                            {item.recommendation}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{item.meta}</p>
-                      <div className="flex items-start gap-1.5 bg-foreground/[0.02] p-2 rounded-lg mt-1">
-                        <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                        <p className="text-[10px] text-foreground/80">
-                          <span className="font-bold text-foreground">Action:</span> {item.recommendation}
-                        </p>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-32 items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] text-center text-sm text-muted-foreground">
+                    {q.emptyText}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <div className="mb-4 flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-xl font-bold">
+            AI-Powered Action Plan
+          </h2>
+        </div>
+
+        {actionPlan.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {actionPlan.map((plan: any, i: number) => (
+              <motion.div
+                key={plan.title || i}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card-hover relative overflow-hidden p-5"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                  Priority {i + 1}
+                </p>
+                <h3 className="mt-1 font-display text-lg font-bold">
+                  {plan.title}
+                </h3>
+
+                {Array.isArray(plan.steps) && (
+                  <div className="mt-4 space-y-2">
+                    {plan.steps.map((step: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-foreground">
+                            {step.t || step.title || step}
+                          </p>
+                          {step.meta && (
+                            <p className="font-data text-[10px] text-muted-foreground">
+                              {step.meta}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="glass-card p-8 text-center text-sm text-muted-foreground">
+            No AI action plan available yet. This section will populate once the
+            Web Intelligence API returns recommendations.
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
 }
-

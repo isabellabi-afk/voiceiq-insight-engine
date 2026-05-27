@@ -33,30 +33,59 @@ export default function Reviews() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    getReviews().then((data) => {
-      setReviews(data);
-      setLoading(false);
-    });
+    setLoading(true);
+
+    getReviews()
+      .then((data) => setReviews(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error("Error loading reviews:", error);
+        setReviews([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const cities = useMemo(
-    () => Array.from(new Set(reviews.map((r) => r.city).filter(Boolean))).sort(),
-    [reviews],
+    () =>
+      Array.from(
+        new Set(reviews.map((review) => review.city).filter(Boolean))
+      ).sort(),
+    [reviews]
   );
 
   const filtered = useMemo(() => {
-    return reviews.filter((r) => {
-      if (sentiment !== "all" && r.sentiment_binary !== sentiment) return false;
-      if (city !== "all" && r.city !== city) return false;
-      if (stars !== "all" && Math.round(r.review_stars) !== Number(stars)) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !r.business_name?.toLowerCase().includes(q) &&
-          !r.text?.toLowerCase().includes(q)
-        )
-          return false;
+    return reviews.filter((review) => {
+      if (
+        sentiment !== "all" &&
+        review.sentiment_binary?.toLowerCase() !== sentiment
+      ) {
+        return false;
       }
+
+      if (city !== "all" && review.city !== city) {
+        return false;
+      }
+
+      if (stars !== "all") {
+        const reviewStars = Number(review.review_stars);
+
+        if (
+          !Number.isFinite(reviewStars) ||
+          Math.round(reviewStars) !== Number(stars)
+        ) {
+          return false;
+        }
+      }
+
+      if (search.trim()) {
+        const query = search.trim().toLowerCase();
+        const businessName = review.business_name?.toLowerCase() ?? "";
+        const reviewText = review.text?.toLowerCase() ?? "";
+
+        if (!businessName.includes(query) && !reviewText.includes(query)) {
+          return false;
+        }
+      }
+
       return true;
     });
   }, [reviews, sentiment, city, stars, search]);
@@ -68,10 +97,12 @@ export default function Reviews() {
     setPage(1);
   }, [search, sentiment, city, stars]);
 
-  const sentimentBadge = (s: string) => {
-    if (s === "positive")
-      return "bg-positive/15 text-positive";
-    if (s === "negative") return "bg-negative/15 text-negative";
+  const sentimentBadge = (value?: string) => {
+    const normalized = value?.toLowerCase();
+
+    if (normalized === "positive") return "bg-positive/15 text-positive";
+    if (normalized === "negative") return "bg-negative/15 text-negative";
+
     return "bg-warning/15 text-warning";
   };
 
@@ -83,7 +114,6 @@ export default function Reviews() {
         subtitle="Browse, filter and analyze every customer review from the live dataset."
       />
 
-      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -95,7 +125,7 @@ export default function Reviews() {
             <Input
               placeholder="Search business or review text…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               className="rounded-full border-white/60 bg-white/50 pl-9 backdrop-blur-xl"
             />
           </div>
@@ -117,9 +147,9 @@ export default function Reviews() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All stars</SelectItem>
-              {[5, 4, 3, 2, 1].map((s) => (
-                <SelectItem key={s} value={String(s)}>
-                  {s} stars
+              {[5, 4, 3, 2, 1].map((star) => (
+                <SelectItem key={star} value={String(star)}>
+                  {star} stars
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,9 +161,9 @@ export default function Reviews() {
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="all">All cities</SelectItem>
-              {cities.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
+              {cities.map((cityName) => (
+                <SelectItem key={cityName} value={cityName}>
+                  {cityName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -141,12 +171,13 @@ export default function Reviews() {
 
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />
-            {loading ? "Loading…" : `${filtered.length.toLocaleString()} of ${reviews.length.toLocaleString()} reviews`}
+            {loading
+              ? "Loading…"
+              : `${filtered.length.toLocaleString()} of ${reviews.length.toLocaleString()} reviews`}
           </div>
         </div>
       </motion.div>
 
-      {/* Table */}
       <div className="glass-card overflow-hidden">
         <Table>
           <TableHeader>
@@ -159,70 +190,98 @@ export default function Reviews() {
               <TableHead className="w-[120px]">Date</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-12 text-center text-sm text-muted-foreground"
+                >
                   Loading reviews…
                 </TableCell>
               </TableRow>
             )}
+
             {!loading && pageData.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-12 text-center text-sm text-muted-foreground"
+                >
                   <MessageSquare className="mx-auto mb-2 h-5 w-5 opacity-50" />
                   No reviews match these filters.
                 </TableCell>
               </TableRow>
             )}
-            {pageData.map((r) => (
-              <TableRow key={r.review_id} className="border-white/40">
-                <TableCell className="font-medium text-foreground">{r.business_name}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.city}, {r.state}
+
+            {pageData.map((review, index) => (
+              <TableRow
+                key={
+                  review.review_id ||
+                  `${review.business_id}-${review.date}-${index}`
+                }
+                className="border-white/40"
+              >
+                <TableCell className="font-medium text-foreground">
+                  {review.business_name || "Unknown business"}
                 </TableCell>
+
+                <TableCell className="text-xs text-muted-foreground">
+                  {[review.city, review.state].filter(Boolean).join(", ") ||
+                    "N/A"}
+                </TableCell>
+
                 <TableCell>
                   <span className="inline-flex items-center gap-1 font-data text-sm">
                     <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-                    {r.review_stars}
+                    {review.review_stars ?? "N/A"}
                   </span>
                 </TableCell>
+
                 <TableCell>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${sentimentBadge(
-                      r.sentiment_binary,
+                      review.sentiment_binary
                     )}`}
                   >
-                    {r.sentiment_binary}
+                    {review.sentiment_binary || "unknown"}
                   </span>
                 </TableCell>
+
                 <TableCell className="max-w-[500px] text-sm text-foreground/80">
-                  <p className="line-clamp-2">{r.text}</p>
+                  <p className="line-clamp-2">
+                    {review.text || "No review text available."}
+                  </p>
                 </TableCell>
+
                 <TableCell className="font-data text-xs text-muted-foreground">
-                  {r.date?.slice(0, 10)}
+                  {review.date ? review.date.slice(0, 10) : "N/A"}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
 
-        {/* Pagination */}
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t border-white/40 px-4 py-3 text-xs text-muted-foreground">
             <span>
               Page {page} of {totalPages}
             </span>
+
             <div className="flex gap-2">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
                 disabled={page === 1}
                 className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
               >
                 Previous
               </button>
+
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setPage((currentPage) => Math.min(totalPages, currentPage + 1))
+                }
                 disabled={page === totalPages}
                 className="rounded-full border border-white/60 bg-white/60 px-3 py-1 font-medium text-foreground backdrop-blur-xl hover:bg-white/80 disabled:opacity-40"
               >

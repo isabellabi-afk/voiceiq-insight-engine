@@ -137,3 +137,7 @@ export const getMarketPositionFormatted = async () => {
     })),
   };
 };
+
+export const getSentimentRadar = async () => {
+  return safeFetch<any>("/intelligence/sentiment-radar");
+};

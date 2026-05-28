@@ -110,7 +110,22 @@ export default function MarketExplorer() {
       satisfaction: item.count > 0 ? Number((item.ratingSum / item.count).toFixed(1)) : 0,
     })).filter((b) => b.count > 0);
 
-    return { leaderboard, localAverage, cuisineBubbles, location, totalRestaurants: normalized.length };
+    // City sentiment map
+    const cityMap: Record<string, {city: string, total: number, positive: number, avg_stars: number}> = {};
+    restaurants.forEach((r: any) => {
+      const city = r.city;
+      if (!city) return;
+      if (!cityMap[city]) cityMap[city] = { city, total: 0, positive: 0, avg_stars: 0 };
+      cityMap[city].total += r.total_reviews || 0;
+      cityMap[city].positive += r.positive_reviews || 0;
+      cityMap[city].avg_stars = r.avg_stars || 0;
+    });
+    const cityStats = Object.values(cityMap)
+      .map(c => ({ ...c, positive_pct: c.total > 0 ? Math.round(c.positive / c.total * 100) : 0 }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    return { leaderboard, localAverage, cuisineBubbles, location, totalRestaurants: normalized.length, cityStats };
   }, [restaurants, filter]);
 
   const insights = useMemo(() => {
@@ -226,47 +241,35 @@ export default function MarketExplorer() {
           transition={{ delay: 0.36 }} className="glass-card p-6 lg:col-span-7">
           <div className="mb-5">
             <h3 className="font-display text-lg font-medium">Cuisine Density</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Bubble size = number of restaurants · color = average rating by city</p>
+            <p className="mt-1 text-xs text-muted-foreground">Restaurants and average rating by city</p>
           </div>
-          {market.cuisineBubbles.length > 0 ? (
-            <>
-              <div className="h-[340px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 12, right: 12, bottom: 12, left: 0 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 4" />
-                    <XAxis type="number" dataKey="x" hide domain={[0, 10]} />
-                    <YAxis type="number" dataKey="y" hide domain={[0, 10]} />
-                    <ZAxis type="number" dataKey="count" range={[400, 3200]} />
-                    <Tooltip cursor={{ strokeDasharray: "3 3" }} content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const d = payload[0].payload;
-                      return (
-                        <div className="glass-tooltip">
-                          <p className="text-sm font-semibold">{d.cuisine}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{d.count} restaurants · <span className="font-data">{d.satisfaction}</span> ★</p>
-                        </div>
-                      );
-                    }} />
-                    <Scatter data={market.cuisineBubbles} shape="circle">
-                      {market.cuisineBubbles.map((b, i) => (
-                        <Cell key={i} fill={bubbleColor(b.satisfaction)} fillOpacity={0.55} stroke={bubbleColor(b.satisfaction)} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {market.cuisineBubbles.map((b) => (
-                  <div key={b.cuisine} className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/40 px-3 py-1 text-[11px] text-muted-foreground">
-                    <span className="h-2 w-2 rounded-full" style={{ background: bubbleColor(b.satisfaction) }} />
-                    <span className="text-foreground">{b.cuisine}</span>
-                    <span className="font-data">{b.count}</span>
+          {market.cityStats && market.cityStats.length > 0 ? (
+            <div className="space-y-3">
+              {market.cityStats.map((c: any, i: number) => (
+                <motion.div key={c.city} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">{c.city}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{c.total.toLocaleString()} reviews</span>
+                      <span className={`font-data text-xs font-semibold ${c.positive_pct >= 60 ? 'text-positive' : c.positive_pct >= 40 ? 'text-warning' : 'text-negative'}`}>
+                        {c.positive_pct}%
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${c.positive_pct}%` }}
+                      transition={{ duration: 0.8, delay: 0.1 + i * 0.05, ease: 'easeOut' }}
+                      className={`h-full rounded-full ${c.positive_pct >= 60 ? 'gradient-positive' : c.positive_pct >= 40 ? 'gradient-warning' : 'gradient-negative'}`}
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           ) : (
-            <div className="flex h-[340px] items-center justify-center text-sm text-muted-foreground">No cuisine data available.</div>
+            <div className="flex h-[340px] items-center justify-center text-sm text-muted-foreground">No city data available.</div>
           )}
         </motion.div>
 

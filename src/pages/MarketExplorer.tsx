@@ -240,8 +240,8 @@ export default function MarketExplorer() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.36 }} className="glass-card p-6 lg:col-span-7">
           <div className="mb-5">
-            <h3 className="font-display text-lg font-medium">Cuisine Density</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Restaurants and average rating by city</p>
+            <h3 className="font-display text-lg font-medium">Sentiment by City</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Positive sentiment % · top 10 cities by review volume</p>
           </div>
           {market.cityStats && market.cityStats.length > 0 ? (
             <div className="space-y-3">

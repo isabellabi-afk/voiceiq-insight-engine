@@ -11,10 +11,37 @@ async function safeFetch<T>(path: string): Promise<T | null> {
   }
 }
 
-// ── 1. KPIs (Dashboard principal) ──
+const factorTranslations: Record<string, string> = {
+  otros: "Others",
+  servicio: "Service",
+  comida: "Food",
+  ambiente: "Atmosphere",
+};
+
+const translateFactor = (factor: string) =>
+  factorTranslations[factor.toLowerCase()] ||
+  factor.charAt(0).toUpperCase() + factor.slice(1);
+
 export const getOverviewData = async () => {
-  const data = await safeFetch<any>("/kpis");
+  const [data, problemDrivers, satisfactionDrivers] = await Promise.all([
+    safeFetch<any>("/kpis"),
+    safeFetch<any>("/intelligence/top-problem-drivers"),
+    safeFetch<any>("/intelligence/top-satisfaction-drivers"),
+  ]);
+
   if (!data) return null;
+
+  const drivers = (satisfactionDrivers?.top_satisfaction_drivers ?? []).map((d: any) => ({
+    name: translateFactor(d.factor),
+    value: Math.round((d.positive_reviews / (data.total_reviews || 1)) * 100),
+  }));
+
+  const issues = (problemDrivers?.top_problem_drivers ?? []).map((d: any) => ({
+    title: translateFactor(d.factor),
+    detail: `${d.negative_reviews} negative reviews related to this factor.`,
+    action: `Review and improve customer experience regarding "${translateFactor(d.factor)}".`,
+  }));
+
   return {
     nps: Math.round((data.positive_pct ?? 0) - 20),
     csat: data.avg_stars,
@@ -24,10 +51,11 @@ export const getOverviewData = async () => {
     cities: data.cities ?? [],
     volume_trend_pct: "+12%",
     response_rate: 85,
+    drivers,
+    issues,
   };
 };
 
-// ── 2. Reviews ──
 export interface Review {
   review_id: string;
   business_id: string;
@@ -51,17 +79,22 @@ export const getReviews = async (): Promise<Review[]> => {
   return data ?? [];
 };
 
-// ── 3. Restaurants ──
 export const getMarketData = async (): Promise<any> => {
   return safeFetch<any>("/restaurants");
 };
 
-// ── 4. Business metrics ──
 export const getBusinessMetrics = async () => {
   return safeFetch<any[]>("/business-metrics");
 };
 
-// Topic / sentiment factors — legacy endpoint kept for compatibility
 export const getTopicData = async () => {
   return safeFetch<any>("/factors");
+};
+
+export const getTopProblemDrivers = async (city = "all") => {
+  return safeFetch<any>(`/intelligence/top-problem-drivers?city=${city}`);
+};
+
+export const getTopSatisfactionDrivers = async (city = "all") => {
+  return safeFetch<any>(`/intelligence/top-satisfaction-drivers?city=${city}`);
 };

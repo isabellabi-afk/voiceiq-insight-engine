@@ -88,7 +88,11 @@ export const getBusinessMetrics = async () => {
 };
 
 export const getTopicData = async () => {
-  return safeFetch<any>("/factors");
+  return safeFetch<any>("/intelligence/topics");
+};
+
+export const getMarketPosition = async () => {
+  return safeFetch<any>("/intelligence/market-position");
 };
 
 export const getTopProblemDrivers = async (city = "all") => {

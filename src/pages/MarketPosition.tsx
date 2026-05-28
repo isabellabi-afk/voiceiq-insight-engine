@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { getTopicData } from "../apiService";
+import { getMarketPositionFormatted } from "../apiService";
 
 const toneStyles = {
   positive: {
@@ -107,7 +107,7 @@ export default function MarketPosition() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getTopicData()
+    getMarketPositionFormatted()
       .then((data) => setIntelligence(data))
       .catch((error) => {
         console.error("Error loading Web Intelligence data:", error);

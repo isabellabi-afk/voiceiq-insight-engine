@@ -102,3 +102,38 @@ export const getTopProblemDrivers = async (city = "all") => {
 export const getTopSatisfactionDrivers = async (city = "all") => {
   return safeFetch<any>(`/intelligence/top-satisfaction-drivers?city=${city}`);
 };
+
+export const getMarketPositionFormatted = async () => {
+  const data = await safeFetch<any>("/intelligence/market-position");
+  if (!data) return null;
+
+  return {
+    market_position_cards: [
+      { title: "Market Standing", rows: [
+        { label: "Your rating", value: data.market_standing?.your_rating ?? "N/A" },
+        { label: "Category avg", value: data.market_standing?.category_avg ?? "N/A" },
+        { label: "Percentile", value: data.market_standing?.percentile ? `${data.market_standing.percentile}%` : "N/A" },
+      ]},
+      { title: "Share of Voice", rows: [
+        { label: "Your mentions", value: data.share_of_voice?.your_mentions ?? "N/A" },
+        { label: "Category total", value: data.share_of_voice?.category_total ?? "N/A" },
+        { label: "Share", value: data.share_of_voice?.share ? `${data.share_of_voice.share}%` : "N/A" },
+      ]},
+      { title: "Sentiment vs Competition", rows: [
+        { label: "Your NPS", value: data.sentiment_vs_competition?.your_nps ?? "N/A" },
+        { label: "Competitor avg", value: data.sentiment_vs_competition?.competitor_avg ?? "N/A" },
+        { label: "Category avg", value: data.sentiment_vs_competition?.category_avg ?? "N/A" },
+      ]},
+    ],
+    strengths_weaknesses_matrix: {
+      positive: (data.strengths || []).map((f: any) => ({ name: f.factor, meta: `${f.sentiment_pct}% positive · ${f.total} mentions` })),
+      warning: (data.quick_wins || []).map((f: any) => ({ name: f.factor, meta: `${f.sentiment_pct}% positive · ${f.total} mentions` })),
+      negative: (data.critical_issues || []).map((f: any) => ({ name: f.factor, meta: `${f.sentiment_pct}% positive · ${f.total} mentions` })),
+      muted: (data.monitor || []).map((f: any) => ({ name: f.factor, meta: `${f.sentiment_pct}% positive · ${f.total} mentions` })),
+    },
+    action_plan: (data.action_plan || []).map((step: string, i: number) => ({
+      title: `Priority ${i + 1}`,
+      steps: [{ t: step }],
+    })),
+  };
+};

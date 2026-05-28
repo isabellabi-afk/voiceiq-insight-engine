@@ -80,7 +80,7 @@ export default function MarketExplorer() {
       return {
         rank: i + 1,
         name: r.name ?? r.business_name ?? "Unknown",
-        cuisine: getCuisineFromCategories(r.categories),
+        cuisine: r.city || "Unknown",
         rating: Number.isFinite(rating) && rating > 0 ? rating : null,
         reviews: Number.isFinite(reviews) ? reviews : 0,
         city: r.city, state: r.state,
@@ -105,7 +105,7 @@ export default function MarketExplorer() {
     }, {});
 
     const cuisineBubbles = Object.values(cuisineMap).map((item: any, i) => ({
-      cuisine: item.cuisine, x: (i % 5) + 1, y: Math.floor(i / 5) + 1,
+      city: item.cuisine, x: (i % 5) + 1, y: Math.floor(i / 5) + 1,
       count: item.count,
       satisfaction: item.count > 0 ? Number((item.ratingSum / item.count).toFixed(1)) : 0,
     })).filter((b) => b.count > 0);
@@ -226,7 +226,7 @@ export default function MarketExplorer() {
           transition={{ delay: 0.36 }} className="glass-card p-6 lg:col-span-7">
           <div className="mb-5">
             <h3 className="font-display text-lg font-medium">Cuisine Density</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Bubble size = number of restaurants · color = average satisfaction</p>
+            <p className="mt-1 text-xs text-muted-foreground">Bubble size = number of restaurants · color = average rating by city</p>
           </div>
           {market.cuisineBubbles.length > 0 ? (
             <>
